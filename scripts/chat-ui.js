@@ -176,7 +176,7 @@ class ChatManager {
             }
 
             if (!mmJson) {
-                throw new Error("Could not retrieve current mind map structure.");
+                throw new Error("无法获取当前思维导图结构。");
             }
 
             if (mmJson['mm-node']) {
@@ -184,7 +184,7 @@ class ChatManager {
             }
 
             if (!window.handleChatEdit) {
-                throw new Error("Chat handler not loaded. Please refresh the page.");
+                throw new Error("聊天处理器未加载，请刷新页面。");
             }
 
             const result = await window.handleChatEdit(text, mmJson, this.chatHistory);
@@ -193,7 +193,7 @@ class ChatManager {
                 if (typeof window.showApiKeyPopup === 'function') {
                     window.showApiKeyPopup(() => this.sendMessage(), false);
                 } else {
-                    this.addSystemMessage("Please configure your OpenRouter API key in settings.", true);
+                    this.addSystemMessage("请在设置中配置您的 OpenRouter API 密钥。", true);
                 }
                 
                 const userMessages = this.messagesContainer.querySelectorAll('.chat-message.user');
@@ -209,7 +209,7 @@ class ChatManager {
             }
 
             if (!result.success) {
-                throw new Error(result.message || "Failed to edit mind map.");
+                throw new Error(result.message || "编辑思维导图失败。");
             }
 
             this.addBotMessage(result.message);

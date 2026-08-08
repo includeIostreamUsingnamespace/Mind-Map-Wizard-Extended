@@ -1307,7 +1307,7 @@ async function autoSaveMindMapToBackend() {
         const saveFn = window.saveMindMap || saveMindMap;
         await saveFn(
             window.currentMindmap.id,
-            window.currentMindmapTitle || window.currentMindmap.title || 'Untitled',
+            window.currentMindmapTitle || window.currentMindmap.title || '未命名',
             markdown
         );
 
@@ -1328,9 +1328,9 @@ async function autoSaveMindMapToBackend() {
 
         if (window.extractTitleFromMindMapContent) {
             const newTitle = window.extractTitleFromMindMapContent(markdown);
-            if (newTitle && newTitle !== 'Untitled Mind Map') {
+            if (newTitle && newTitle !== '未命名思维导图') {
                 window.currentMindmapTitle = newTitle;
-                document.title = `${newTitle} - Mind Map Wizard`;
+                document.title = `${newTitle} - 思维导图向导`;
 
                 if (typeof window.updateSidebarItemTitle === 'function') {
                     window.updateSidebarItemTitle(window.currentMindmap.id, newTitle);
@@ -1373,14 +1373,14 @@ function initInteraction() {
                     "border-radius": 4
                 },
                 "mm-node": {
-                    "content": "Mind Map Wizard",
+                    "content": "思维导图向导",
                     "children": [
                         {
-                            "content": "Right-click on a node for options",
+                            "content": "右键点击节点查看选项",
                             "children": []
                         },
                         {
-                            "content": "Double click to enter text",
+                            "content": "双击输入文本",
                             "children": []
                         }
                     ]
@@ -1533,7 +1533,7 @@ function updateMindMap() {
     let contextLinks = [];
     try {
         const data = JSON.parse(json);
-        newHierarchy = { text: 'Root', children: [], level: 0, id: 'root' };
+        newHierarchy = { text: '根节点', children: [], level: 0, id: 'root' };
         if (data['mm-node']) {
             const jsonNode = data['mm-node'];
             const hierarchyNode = convertJsonToNode(jsonNode, 1, '0');
@@ -1542,7 +1542,7 @@ function updateMindMap() {
         contextLinks = data['mm-settings']?.contextUrls || [];
     } catch (e) {
         console.error('Invalid JSON:', e);
-        newHierarchy = { text: 'Root', children: [], level: 0, id: 'root' };
+        newHierarchy = { text: '根节点', children: [], level: 0, id: 'root' };
     }
 
     const forcedStableMap = window.__mmwForcedStablePathMap || null;
@@ -2278,7 +2278,7 @@ function editNodeText(nodeElement) {
         const json = __mmwComposeJsonWithCurrentSettings(currentHierarchy);
         editor.value = json;
         cleanup();
-        if (originalText === 'New Node') {
+        if (originalText === '新节点') {
             HistoryManager.captureState();
             deleteNodeByElement(nodeElement);
         } else {
@@ -2618,7 +2618,7 @@ function editNodeText(nodeElement) {
                 dialog.className = 'url-input-dialog';
 
                 const title = document.createElement('h3');
-                title.textContent = 'Enter URL';
+                title.textContent = '输入网址';
                 dialog.appendChild(title);
 
                 const input = document.createElement('input');
@@ -2631,7 +2631,7 @@ function editNodeText(nodeElement) {
                 buttonContainer.className = 'url-input-buttons';
 
                 const cancelBtn = document.createElement('button');
-                cancelBtn.textContent = 'Cancel';
+                cancelBtn.textContent = '取消';
                 cancelBtn.className = 'url-input-btn url-input-btn-cancel';
                 cancelBtn.onclick = () => {
                     document.body.removeChild(backdrop);
@@ -2639,7 +2639,7 @@ function editNodeText(nodeElement) {
                 };
 
                 const confirmBtn = document.createElement('button');
-                confirmBtn.textContent = 'Insert';
+                confirmBtn.textContent = '插入';
                 confirmBtn.className = 'url-input-btn url-input-btn-confirm';
                 confirmBtn.onclick = () => {
                     let value = input.value.trim();
@@ -2685,24 +2685,24 @@ function editNodeText(nodeElement) {
             }
 
             if (!isTitleNode) {
-                addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bold-icon lucide-bold"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></svg>`, () => applyWrap('**', '**'), 'Bold');
+                addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bold-icon lucide-bold"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></svg>`, () => applyWrap('**', '**'), '加粗');
             }
-            addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-italic-icon lucide-italic"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>`, () => applyWrap('*', '*'), 'Italic');
-            addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-strikethrough-icon lucide-strikethrough"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>`, () => applyWrap('~~', '~~'), 'Strikethrough');
-            addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`, applyLink, 'Insert link');
+            addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-italic-icon lucide-italic"><line x1="19" x2="10" y1="4" y2="4"/><line x1="14" x2="5" y1="20" y2="20"/><line x1="15" x2="9" y1="4" y2="20"/></svg>`, () => applyWrap('*', '*'), '斜体');
+            addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-strikethrough-icon lucide-strikethrough"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>`, () => applyWrap('~~', '~~'), '删除线');
+            addBtn(`<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-link-icon lucide-link"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`, applyLink, '插入链接');
 
             const currentPlain = __mmwPlainFromDiv(div);
             const selOff = getSelectionOffsets(div);
             const selectionText = (selOff && selOff.start !== selOff.end) ? currentPlain.slice(selOff.start, selOff.end) : currentPlain;
 
             if (__mmwHasMarkdownStyles(selectionText)) {
-                addBtn(`<svg xmlns="http://www.w3.org/2000/svg"r width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-remove-formatting-icon lucide-remove-formatting"><path d="M4 7V4h16v3"/><path d="M5 20h6"/><path d="M13 4 8 20"/><path d="m15 15 5 5"/><path d="m20 15-5 5"/></svg><span>Remove Styling</span>`, () => {
+                addBtn(`<svg xmlns="http://www.w3.org/2000/svg"r width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-remove-formatting-icon lucide-remove-formatting"><path d="M4 7V4h16v3"/><path d="M5 20h6"/><path d="M13 4 8 20"/><path d="m15 15 5 5"/><path d="m20 15-5 5"/></svg><span>清除样式</span>`, () => {
                     const raw = __mmwPlainFromDiv(div);
                     const cleaned = __mmwStripMarkdown(raw);
                     div.textContent = cleaned;
                     setSelectionOffsets(div, cleaned.length, cleaned.length);
                     triggerLiveUpdate();
-                }, 'Remove styling');
+                }, '清除样式');
             }
 
             document.body.appendChild(tb);
@@ -2879,7 +2879,7 @@ function showContextMenu(e) {
                                 <path d="M5 12h14"/>
                                 <path d="M12 5v14"/>
                             </svg>
-                            Add Branch
+                            添加分支
                         </div>` : ''}
                         
                         ${(!targetNode.collapsed) ? `<div class="context-menu-button" onclick="showImageUploadPopup()">
@@ -2888,7 +2888,7 @@ function showContextMenu(e) {
                                 <circle cx="9" cy="9" r="2"/>
                                 <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                             </svg>
-                            Add Image
+                            添加图片
                         </div>` : ''}
                         
                          ${(!targetNode.notes) ? `<div class="context-menu-button" onclick="window.openNotesDrawer('${targetNode.id}', 'menu')">
@@ -2897,19 +2897,19 @@ function showContextMenu(e) {
                                 <path d="M15 12H3"/>
                                 <path d="M17 19H3"/>
                             </svg>
-                            Add Notes
+                            添加笔记
                         </div>` : ''}
 
                         ${targetNode && targetNode.checked === undefined ? `<div class="context-menu-button" onclick="window.toggleCheckbox()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                             </svg>
-                            Add Checkbox
+                            添加复选框
                         </div>` : `<div class="context-menu-button" onclick="window.toggleCheckbox()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
-                            Remove Checkbox
+                            移除复选框
                         </div>`}
                         
                          ${isLevelDeepEnough ? `<div class="context-menu-button ai-expand-button" onclick="expandMindMapNode()">
@@ -2920,7 +2920,7 @@ function showContextMenu(e) {
                         <rect x="16" y="15" width="6" height="6" rx="1" />
                         <rect x="2" y="9" width="6" height="6" rx="1" />
                         </svg>
-                        AI Expand                
+                        AI 扩展                
                         </div>` : ''}
                         <div class="context-menu-divider" style="margin: 6px 0; height: 1px; background: var(--border-color, #e8ecef);"></div>
 
@@ -2972,26 +2972,26 @@ function showContextMenu(e) {
                                 <path d="M13 21h8"/>
                                 <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5 .5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
                             </svg>
-                            Edit Node
+                            编辑节点
                         </div>` : ''}
                         
                         ${(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button has-submenu" onmouseenter="showImageSizeSubmenu(event, '${targetNode.imageSize || 'medium'}')">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-proportions-icon lucide-proportions"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M12 9v11"/><path d="M2 9h13a2 2 0 0 1 2 2v9"/></svg>
-                            Size
+                            尺寸
                         </div>` : ''}
                         
                         ${(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" onclick="downloadImage()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-                            Download Image
+                            下载图片
                         </div>` : ''}
                         
                         ${(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" onclick="showReplaceImagePopup()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-repeat-icon lucide-repeat"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>                            Replace Image
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-repeat-icon lucide-repeat"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>                            替换图片
                         </div>` : ''}
 
                         ${(isLevelDeepEnough && targetNode.children && targetNode.children.length > 0 && !targetNode.collapsed) ? `<div class="context-menu-button" onclick="collapseNodeChildren()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg>
-                            Collapse Children
+                            折叠子节点
                         </div>` : ''}
 
                         ${(targetNode && __mmwHasMarkdownStyles(targetNode.text)) ? `
@@ -3003,7 +3003,7 @@ function showContextMenu(e) {
                                 <path d="m15 15 5 5"/>
                                 <path d="m20 15-5 5"/>
                             </svg>
-                            Remove Styles
+                            移除样式
                         </div>` : ''}
 
                         ${(targetNode && targetNode.branchColor) ? `
@@ -3012,7 +3012,7 @@ function showContextMenu(e) {
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                                 <path d="M3 3v5h5"/>
                             </svg>
-                            Reset Color
+                            重置颜色
                         </div>` : ''}
                         ${isLevelDeepEnough ? `<div class="context-menu-button delete-node-button" onclick="deleteNode()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.55rem" height="1.55rem" viewBox="-5 -5 34 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="delete-node-icon">
@@ -3020,7 +3020,7 @@ function showContextMenu(e) {
                                 <path d="M3 6h18"></path>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
                             </svg>
-                            Delete Node
+                            删除节点
                         </div>` : ''}
                     </div>
                 `;
@@ -3088,7 +3088,7 @@ window.addChildNodeFor = function (targetNodeId) {
     if (parentNode) {
         const newStableId = __mmwGenerateUid();
         const newNode = {
-            text: 'New Node',
+            text: '新节点',
             children: [],
             level: parentNode.level + 1,
             parent: parentNode,
@@ -3109,7 +3109,7 @@ window.addChildNodeFor = function (targetNodeId) {
             let actualId = newStableId;
             if (updatedParent && updatedParent.children.length > 0) {
                 const lastChild = updatedParent.children[updatedParent.children.length - 1];
-                if (lastChild.text === 'New Node') {
+                if (lastChild.text === '新节点') {
                     actualId = lastChild.id;
                 }
             }
@@ -3142,7 +3142,7 @@ window.showImageUploadPopup = async function () {
     const storage = window.ImageHandler;
     
     const title = document.createElement('h3');
-    title.textContent = 'Add Image';
+    title.textContent = '添加图片';
     dialog.appendChild(title);
     
     const dropZone = document.createElement('div');
@@ -3160,7 +3160,7 @@ window.showImageUploadPopup = async function () {
     const uploadBtn = document.createElement('button');
     uploadBtn.type = 'button';
     uploadBtn.className = 'image-upload-btn';
-    uploadBtn.textContent = 'Upload';
+    uploadBtn.textContent = '上传';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -3181,12 +3181,12 @@ window.showImageUploadPopup = async function () {
     
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = '取消';
     cancelBtn.className = 'image-upload-btn image-upload-btn-cancel';
     
     const confirmBtn = document.createElement('button');
     confirmBtn.type = 'button';
-    confirmBtn.textContent = 'Add Image';
+    confirmBtn.textContent = '添加图片';
     confirmBtn.className = 'image-upload-btn image-upload-btn-confirm';
     confirmBtn.style.display = 'none';
     
@@ -3232,14 +3232,14 @@ window.showImageUploadPopup = async function () {
                 
                 const messageText = document.createElement('p');
                 messageText.style.cssText = 'color: #ff6b6b; font-size: 14px; margin: 0 0 16px 0;';
-                messageText.textContent = 'Please sign in to upload more images to mind maps';
+                messageText.textContent = '请登录以上传更多图片到思维导图';
                 errorMsg.appendChild(messageText);
                 
                 const signUpBtn = document.createElement('a');
                 signUpBtn.href = '/sign-up';
                 signUpBtn.className = 'pill-button';
                 signUpBtn.style.cssText = 'display: inline-block; padding: 10px 24px; background: #4a90d9; color: white; text-decoration: none; border-radius: 25px; font-size: 14px; font-weight: 500; transition: background 0.2s;';
-                signUpBtn.textContent = 'Sign up';
+                signUpBtn.textContent = '注册';
                 signUpBtn.onmouseenter = () => signUpBtn.style.background = '#3a7bc8';
                 signUpBtn.onmouseleave = () => signUpBtn.style.background = '#4a90d9';
                 errorMsg.appendChild(signUpBtn);
@@ -3249,7 +3249,7 @@ window.showImageUploadPopup = async function () {
                 const errorMsg = document.createElement('div');
                 errorMsg.className = 'image-error-message';
                 errorMsg.style.cssText = 'color: #ff6b6b; text-align: center; padding: 20px; font-size: 14px;';
-                errorMsg.textContent = err.message || 'Failed to process image. Please try a different file.';
+                errorMsg.textContent = err.message || '图片处理失败，请尝试其他文件。';
                 previewArea.appendChild(errorMsg);
             }
             
@@ -3377,7 +3377,7 @@ window.showReplaceImagePopup = async function () {
     dialog.className = 'image-upload-dialog';
     
     const title = document.createElement('h3');
-    title.textContent = 'Replace Image';
+    title.textContent = '替换图片';
     dialog.appendChild(title);
     
     const dropZone = document.createElement('div');
@@ -3395,7 +3395,7 @@ window.showReplaceImagePopup = async function () {
     const uploadBtn = document.createElement('button');
     uploadBtn.type = 'button';
     uploadBtn.className = 'image-upload-btn';
-    uploadBtn.textContent = 'Upload';
+    uploadBtn.textContent = '上传';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -3416,12 +3416,12 @@ window.showReplaceImagePopup = async function () {
     
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = '取消';
     cancelBtn.className = 'image-upload-btn image-upload-btn-cancel';
     
     const confirmBtn = document.createElement('button');
     confirmBtn.type = 'button';
-    confirmBtn.textContent = 'Replace';
+    confirmBtn.textContent = '替换';
     confirmBtn.className = 'image-upload-btn image-upload-btn-confirm';
     confirmBtn.style.display = 'none';
     
@@ -3463,7 +3463,7 @@ window.showReplaceImagePopup = async function () {
             const errorMsg = document.createElement('div');
             errorMsg.className = 'image-error-message';
             errorMsg.style.cssText = 'color: #ff6b6b; text-align: center; padding: 20px; font-size: 14px;';
-            errorMsg.textContent = err.message || 'Failed to process image. Please try a different file.';
+            errorMsg.textContent = err.message || '图片处理失败，请尝试其他文件。';
             previewArea.appendChild(errorMsg);
             
             confirmBtn.style.display = 'none';
@@ -3548,7 +3548,7 @@ window.showReplaceImagePopup = async function () {
         } catch (err) {
             console.error('Failed to replace image:', err);
             confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Replace Image';
+            confirmBtn.textContent = '替换图片';
             isUploading = false;
         } finally {
             isUploading = false;
@@ -3609,7 +3609,7 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
     dialog.className = 'image-upload-dialog';
     
     const title = document.createElement('h3');
-    title.textContent = 'Replace Image';
+    title.textContent = '替换图片';
     dialog.appendChild(title);
     
     const dropZone = document.createElement('div');
@@ -3627,7 +3627,7 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
     const uploadBtn = document.createElement('button');
     uploadBtn.type = 'button';
     uploadBtn.className = 'image-upload-btn';
-    uploadBtn.textContent = 'Upload';
+    uploadBtn.textContent = '上传';
     
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -3648,12 +3648,12 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
     
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.textContent = 'Cancel';
+    cancelBtn.textContent = '取消';
     cancelBtn.className = 'image-upload-btn image-upload-btn-cancel';
     
     const confirmBtn = document.createElement('button');
     confirmBtn.type = 'button';
-    confirmBtn.textContent = 'Replace';
+    confirmBtn.textContent = '替换';
     confirmBtn.className = 'image-upload-btn image-upload-btn-confirm';
     confirmBtn.style.display = 'none';
     
@@ -3695,7 +3695,7 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
             const errorMsg = document.createElement('div');
             errorMsg.className = 'image-error-message';
             errorMsg.style.cssText = 'color: #ff6b6b; text-align: center; padding: 20px; font-size: 14px;';
-            errorMsg.textContent = err.message || 'Failed to process image. Please try a different file.';
+            errorMsg.textContent = err.message || '图片处理失败，请尝试其他文件。';
             previewArea.appendChild(errorMsg);
             
             confirmBtn.style.display = 'none';
@@ -3782,7 +3782,7 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
         } catch (err) {
             console.error('Failed to replace image:', err);
             confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Replace';
+            confirmBtn.textContent = '替换';
             isUploading = false;
         } finally {
             isUploading = false;
@@ -3823,9 +3823,9 @@ window.showImageSizeSubmenu = function (e, currentSize) {
     submenu.style.transition = 'transform 140ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 140ms cubic-bezier(0.2, 0.8, 0.2, 1)';
     
     const sizes = [
-        { id: 'small', label: 'Small', icon: '<rect width="10" height="8" x="7" y="8" rx="1" ry="1"/>' },
-        { id: 'medium', label: 'Medium', icon: '<rect width="14" height="10" x="5" y="7" rx="1" ry="1"/>' },
-        { id: 'large', label: 'Large', icon: '<rect width="18" height="12" x="3" y="6" rx="1" ry="1"/>' }
+        { id: 'small', label: '小', icon: '<rect width="10" height="8" x="7" y="8" rx="1" ry="1"/>' },
+        { id: 'medium', label: '中', icon: '<rect width="14" height="10" x="5" y="7" rx="1" ry="1"/>' },
+        { id: 'large', label: '大', icon: '<rect width="18" height="12" x="3" y="6" rx="1" ry="1"/>' }
     ];
     
     submenu.innerHTML = `
@@ -5356,7 +5356,7 @@ window.aiBrainstormNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI module not loaded'); return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
     showLoadingAnimation();
@@ -5376,7 +5376,7 @@ window.aiResearchNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI module not loaded'); return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
     showLoadingAnimation();
@@ -5396,7 +5396,7 @@ window.aiExplainNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI module not loaded'); return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
     showLoadingAnimation();
@@ -5416,7 +5416,7 @@ window.aiPolishNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI module not loaded'); return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
     showLoadingAnimation();
@@ -5436,7 +5436,7 @@ window.aiSummarizeNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI module not loaded'); return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
     showLoadingAnimation();
@@ -5456,7 +5456,7 @@ window.aiRestructureNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI module not loaded'); return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
     showLoadingAnimation();

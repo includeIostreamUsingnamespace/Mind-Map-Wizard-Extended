@@ -151,11 +151,11 @@ function clearHistory() {
 	clearPopup.innerHTML = `
         <div class="delete-popup-content">
         <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="#DC3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-brush-cleaning-icon lucide-brush-cleaning"><path d="m16 22-1-4"/><path d="M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"/><path d="M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"/><path d="m8 22 1-4"/></svg>
-            <h3 style="margin-top: 20px;">Clear Mind Map Wizard</h3>
-            <p>Are you sure you want to delete all your mind maps? This action cannot be undone.</p>
+            <h3 style="margin-top: 20px;">清空思维导图向导</h3>
+            <p>确定要删除所有思维导图吗？此操作无法撤销。</p>
             <div class="dialog-buttons">
-                <button class="dialog-button cancel" onclick="closeClearPopup()">Cancel</button>
-                <button class="dialog-button delete" onclick="confirmClear()">Clear All</button>
+                <button class="dialog-button cancel" onclick="closeClearPopup()">取消</button>
+                <button class="dialog-button delete" onclick="confirmClear()">全部清空</button>
             </div>
         </div>
     `;
@@ -178,7 +178,7 @@ function formatMarkdown(text) {
 	if (!text) {
 		console.error('Received empty response from API');
 		return {
-			topic: 'Mind Map',
+			topic: '思维导图',
 			markdown: '# Mind Map Wizard\n\nError: No content received'
 		};
 	}
@@ -371,17 +371,17 @@ function showError(errorMessage, hideRetry, input) {
 	errorPopup.className = 'error-popup';
 	document.body.appendChild(errorPopup);
 
-	const retryButtonHtml = hideRetry ? '' : '<button id="retryBtn">Retry</button>';
+	const retryButtonHtml = hideRetry ? '' : '<button id="retryBtn">重试</button>';
 
 	errorPopup.innerHTML = `
-            <h2 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px;">Something went wrong.<br>Please try again.</h2>
+            <h2 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px;">出了点问题。<br>请重试。</h2>
                     <br>
                     <br>
                     <div style="width: 100%; border-radius: 16px; text-align: left; background-color: #F9FAFC; padding: 15px;">
-                        <p style="font-size: 0.9em; color: var(--text-color);">${errorMessage || 'Unknown Error'}</p>
+                        <p style="font-size: 0.9em; color: var(--text-color);">${errorMessage || '未知错误'}</p>
                     </div>
             ${retryButtonHtml}
-			<button id="closeErrorPopupBtn">Close</button>
+			<button id="closeErrorPopupBtn">关闭</button>
         `;
 
 	errorPopup.style.display = 'block';
@@ -415,22 +415,22 @@ function getTimeAgo(date) {
 	const seconds = Math.floor((new Date() - date) / 1000);
 
 	const intervals = {
-		year: 31536000,
-		month: 2592000,
-		week: 604800,
-		day: 86400,
-		hour: 3600,
-		minute: 60,
+		年: 31536000,
+		月: 2592000,
+		周: 604800,
+		天: 86400,
+		小时: 3600,
+		分钟: 60,
 	};
 
 	for (const [unit, secondsInUnit] of Object.entries(intervals)) {
 		const interval = Math.floor(seconds / secondsInUnit);
 
 		if (interval >= 1) {
-			return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
+			return interval === 1 ? `1 ${unit}前` : `${interval} ${unit}前`;
 		}
 	}
-	return 'Just now';
+	return '刚刚';
 }
 
 function closeShareDialog() {
@@ -506,13 +506,13 @@ function formatDateLeftSidebar(timestamp) {
 	const diffDay = Math.floor(diffHour / 24);
 
 	if (diffDay > 0) {
-		return diffDay === 1 ? 'Yesterday' : `${diffDay} days ago`;
+		return diffDay === 1 ? '昨天' : `${diffDay} 天前`;
 	} else if (diffHour > 0) {
-		return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`;
+		return `${diffHour} 小时前`;
 	} else if (diffMin > 0) {
-		return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+		return `${diffMin} 分钟前`;
 	} else {
-		return 'Just now';
+		return '刚刚';
 	}
 }
 
@@ -676,15 +676,15 @@ function showErrorPopup(errorMessage, input) {
 	}
 
 	errorPopup.innerHTML = `
-            <h2 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px;">Something went wrong.<br>Please try again.</h2>
+            <h2 style="color: #1e293b; margin-top: 20px; margin-bottom: 10px;">出了点问题。<br>请重试。</h2>
                     <br>
                     <br>
                     <div style="width: 100%; border-radius: 16px; text-align: left; background-color: #F9FAFC; padding: 15px;">
-                        <p style="font-size: 1em; color: var(--text-color); font-weight: bold; margin-bottom: 5px;">Details</p>
+                        <p style="font-size: 1em; color: var(--text-color); font-weight: bold; margin-bottom: 5px;">详细信息</p>
                         <p style="font-size: 0.9em; color: var(--text-color);">${errorMessage}</p>
                     </div>
-            <button id="retryBtn">Retry</button>
-			<button id="closeErrorPopupBtn">Close</button>
+            <button id="retryBtn">重试</button>
+			<button id="closeErrorPopupBtn">关闭</button>
         `;
 
 	errorPopup.style.display = 'block';
@@ -887,7 +887,7 @@ function initializeKeyboardShortcuts() {
 function markdownToMmJson(md) {
 	const lines = String(md || '').split(/\r?\n/);
 
-	let rootContent = 'Mind Map Wizard';
+	let rootContent = '思维导图向导';
 	let firstHeadingLevel = null;
 	let firstHeadingIndex = -1;
 

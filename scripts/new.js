@@ -47,7 +47,7 @@ function saveApiKey() {
 
 		const saveBtn = document.getElementById('save-api-key');
 		const originalText = saveBtn.textContent;
-		saveBtn.textContent = 'Saved!';
+		saveBtn.textContent = '已保存！';
 		setTimeout(() => {
 			saveBtn.textContent = originalText;
 		}, 1500);
@@ -162,7 +162,7 @@ function showApiKeyPopup(onSavedAction = null, showLoading = false) {
 	popup.innerHTML = `
 		<div class="api-key-popup-content">
 			<div class="popup-header">
-				<h3>OpenRouter API Key Required</h3>
+				<h3>需要 OpenRouter API 密钥</h3>
 				<button class="popup-close" id="close-api-key-popup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<path d="M18 6 6 18"></path>
@@ -171,18 +171,18 @@ function showApiKeyPopup(onSavedAction = null, showLoading = false) {
 				</button>
 			</div>
 			<div class="popup-body">
-				<p>To generate mind maps, you need an OpenRouter API key.</p>
+				<p>要生成思维导图，您需要一个 OpenRouter API 密钥。</p>
 				<div style="margin-bottom: 20px; font-size: 0.95em; color: var(--text-color); opacity: 0.8; line-height: 1.5;">
-					Get your API key at:<br>
+					获取 API 密钥：<br>
 					<a href="https://openrouter.ai/keys" target="_blank" style="color: var(--primary-color); text-decoration: none; font-weight: 500;">openrouter.ai/keys</a>
 				</div>
 				<div style="margin-bottom: 12px;">
 					<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">API Key</label>
-					<input type="password" id="popup-api-key-input" placeholder="sk-or-v1-..." class="popup-input" style="margin-bottom: 16px;">
-					<button id="save-and-generate-btn" class="popup-save-btn">Save & Generate Mind Map</button>
+					<input type="password" id="popup-api-key-input" placeholder="输入 API 密钥..." class="popup-input" style="margin-bottom: 16px;">
+					<button id="save-and-generate-btn" class="popup-save-btn">保存并生成思维导图</button>
 				</div>
 				<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.6; text-align: center;">
-					Your API key is stored locally on this device.
+					您的 API 密钥仅存储在本地设备上。
 				</div>
 			</div>
 		</div>
@@ -254,7 +254,7 @@ function showApiKeyManagement() {
 	popup.innerHTML = `
 		<div class="api-key-popup-content">
 			<div class="popup-header">
-				<h3>AI Settings</h3>
+				<h3>AI 设置</h3>
 				<button class="popup-close" id="close-api-key-manage-popup">
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<path d="M18 6 6 18"></path>
@@ -266,29 +266,29 @@ function showApiKeyManagement() {
 				<div>
 					<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">AI Provider</label>
 					<div class="provider-options" style="display: flex; gap: 10px; margin-bottom: 20px;">
-						<button type="button" class="provider-option ${selectedProvider === 'openrouter' ? 'selected' : ''}" data-provider="openrouter">OpenRouter (Cloud)</button>
+						<button type="button" class="provider-option ${selectedProvider === 'openrouter' ? 'selected' : ''}" data-provider="openrouter">OpenRouter（云端）</button>
 						<button type="button" class="provider-option ${selectedProvider === 'ollama' ? 'selected' : ''}" data-provider="ollama">Local (Ollama)</button>
 					</div>
 
 					<div id="openrouter-settings" style="display: ${selectedProvider === 'openrouter' ? 'block' : 'none'};">
-						<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">OpenRouter API Key</label>
-						<input type="password" id="manage-api-key-input" placeholder="Enter your OpenRouter API key" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${currentApiKey || ''}">
+						<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">OpenRouter API 密钥</label>
+						<input type="password" id="manage-api-key-input" placeholder="输入您的 OpenRouter API 密钥" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${currentApiKey || ''}">
 						<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.7; margin-bottom: 15px;">
-							Get your API key at: <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--primary-color);">openrouter.ai/keys</a>
+							获取 API 密钥： <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--primary-color);">openrouter.ai/keys</a>
 						</div>
 					</div>
 
 					<div id="ollama-settings" style="display: ${selectedProvider === 'ollama' ? 'block' : 'none'};">
-						<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">Ollama Server URL</label>
+						<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">Ollama 服务器地址</label>
 						<input type="text" id="manage-ollama-url-input" placeholder="${DEFAULT_OLLAMA_BASE_URL}" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${currentOllamaUrl}">
 						<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.7; margin-bottom: 15px; line-height: 1.5;">
-							Runs models locally & privately with <a href="https://ollama.com" target="_blank" style="color: var(--primary-color);">Ollama</a>. Allow the browser to reach it by starting the server with <code>OLLAMA_ORIGINS='*' ollama serve</code>.
+							通过 <a href="https://ollama.com" target="_blank" style="color: var(--primary-color);">Ollama</a> 在本地私密运行模型。使用 <code>OLLAMA_ORIGINS='*' ollama serve</code> 启动服务器以允许浏览器访问。
 						</div>
 					</div>
 
 					<div style="display: flex; gap: 10px; margin-top: 30px;">
-						${currentApiKey ? `<button id="remove-api-key-btn" class="remove-btn" style="flex: 1; margin: 0;">Remove API Key</button>` : ''}
-						<button id="update-api-key-btn" class="popup-save-btn" style="flex: 1;">Done</button>
+						${currentApiKey ? `<button id="remove-api-key-btn" class="remove-btn" style="flex: 1; margin: 0;">移除 API 密钥</button>` : ''}
+						<button id="update-api-key-btn" class="popup-save-btn" style="flex: 1;">完成</button>
 					</div>
 				</div>
 			</div>
@@ -452,7 +452,7 @@ function updateAiFeaturesUI() {
 
 	const prompt = document.getElementById('prompt');
 	if (prompt) {
-		prompt.placeholder = isDisabled ? 'Enter your topic (manual mind map)' : 'Enter your text or URL...';
+		prompt.placeholder = isDisabled ? '输入主题（手动绘制思维导图）' : '输入文字或网址...';
 	}
 }
 
@@ -600,7 +600,7 @@ async function loadModels() {
 		updateCurrentModelDisplay();
 	} catch (error) {
 		console.error('Failed to load models:', error);
-		modelOptions.innerHTML = '<div class="model-error">Failed to load models</div>';
+		modelOptions.innerHTML = '<div class="model-error">加载模型失败</div>';
 		updateCurrentModelDisplay();
 	} finally {
 	}
@@ -687,7 +687,7 @@ function renderModelOptions() {
 		const isDefaultModel = model.id === 'google/gemini-2.5-flash-lite';
 		if (isDefaultModel) {
 			const defaultBadge = document.createElement('span');
-			defaultBadge.textContent = 'Default';
+			defaultBadge.textContent = '默认';
 			defaultBadge.className = 'default-badge';
 			option.appendChild(modelNameContainer);
 			option.appendChild(defaultBadge);
@@ -752,7 +752,7 @@ function updateCurrentModelDisplay() {
 	if (!currentModelName) return;
 
 	if (availableModels.length === 0) {
-		currentModelName.textContent = 'Loading models...';
+		currentModelName.textContent = '正在加载模型...';
 		return;
 	}
 
@@ -930,8 +930,8 @@ async function generateMindmap(mindmapTopic, isRegenerate = false) {
 - Focus on the most relevant and interesting information that creates a useful knowledge structure
 - Make the branches have different lengths for making the mind map visually more interesting.
 - The mind map should be in the language of the user input.
-- The title should be as short as possible.
-- The mind map should have at least 3 branches going out of the title node.
+- 标题应尽可能简短。
+- 思维导图至少应有3个分支从标题节点延伸出来。
 - Research Instruction: ${searchInstruction}
 
 **Output Format:**
@@ -958,11 +958,11 @@ Structure your response exactly like this:
 			const errorData = await response.json().catch(() => ({}));
 
 			if (response.status === 401) {
-				throw new Error('Invalid OpenRouter API key. Please check your API key and try again.');
+				throw new Error('OpenRouter API 密钥无效。请检查您的 API 密钥后重试。');
 			} else if (response.status === 429) {
-				throw new Error('Rate limit exceeded. Please wait before trying again.');
+				throw new Error('请求过于频繁，请稍后再试。');
 			} else if (response.status === 402) {
-				throw new Error('Insufficient credits. Please check your OpenRouter account balance.');
+				throw new Error('余额不足。请检查您的 OpenRouter 账户余额。');
 			} else {
 				throw new Error(errorData.error?.message || `API error: ${response.status}`);
 			}
@@ -971,7 +971,7 @@ Structure your response exactly like this:
 		const data = await response.json();
 
 		if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-			throw new Error('Invalid response from OpenRouter API');
+			throw new Error('OpenRouter API 返回无效响应');
 		}
 
 		let parsedContent;
@@ -1126,15 +1126,15 @@ Structure your response exactly like this:
 	} catch (error) {
 		console.error('Error generating the mindmap:', error);
 
-		let userMessage = 'An error occurred while generating the mindmap.';
+		let userMessage = '生成思维导图时发生错误。';
 		let shouldShowError = true;
 
 		if (error.message.includes('Rate limit')) {
-			userMessage = 'Too many requests. Please wait a moment before trying again.';
+			userMessage = '请求过于频繁。请稍等片刻再试。';
 		} else if (error.message.includes('network') || error.message.includes('fetch')) {
-			userMessage = 'Network error. Please check your connection and try again.';
+			userMessage = '网络错误。请检查您的连接后重试。';
 		} else if (error.message.includes('security')) {
-			userMessage = 'Content validation failed. Please try a different topic.';
+			userMessage = '内容验证失败。请尝试不同的主题。';
 		} else if (error.message.includes('API key')) {
 			userMessage = error.message;
 		}
@@ -1234,7 +1234,7 @@ Context: ${branchContext}`;
 			const data = await response.json();
 
 			if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-				throw new Error('Invalid response from OpenRouter API');
+				throw new Error('OpenRouter API 返回无效响应');
 			}
 
 			let parsedContent;
@@ -1323,7 +1323,7 @@ Context: ${branchContext}`;
 		} catch (error) {
 			console.error('Failed to expand node:', error);
 			if (loader) loader.classList.remove('active');
-			showInfoSnackbar('Failed to expand node: ' + error.message);
+			showInfoSnackbar('展开节点失败：' + error.message);
 		}
 
 	} catch (error) {
@@ -1550,9 +1550,9 @@ function updateSignUpButton() {
 	const signUpButton = document.querySelector(".sign-up-button");
 	if (!signUpButton) return;
 	if (window.innerWidth <= 435) {
-		signUpButton.textContent = "Sign Up";
+		signUpButton.textContent = "注册";
 	} else {
-		signUpButton.textContent = "Sign Up";
+		signUpButton.textContent = "注册";
 	}
 }
 
@@ -1656,7 +1656,7 @@ function updateSignUpButton() {
 
 			window.currentMarkdown = jsonStr;
 
-			let derivedTopic = 'Mind Map';
+			let derivedTopic = '思维导图';
 			try {
 				const parsed = JSON.parse(jsonStr || '{}');
 				const root = parsed['mm-node'] || parsed.mmNode || null;
@@ -1710,7 +1710,7 @@ function updateSignUpButton() {
 	function __mmwMarkdownToJson(md) {
 		const lines = String(md || '').split(/\r?\n/);
 
-		let rootContent = 'Mind Map Wizard';
+		let rootContent = '思维导图向导';
 		let firstHeadingLevel = null;
 		let firstHeadingIndex = -1;
 
@@ -2000,7 +2000,7 @@ function initializePdfUpload() {
 		const file = e.target.files && e.target.files[0];
 		if (!file) return;
 		if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-			showErrorPopup('Please select a PDF file.', '');
+			showErrorPopup('请选择PDF文件。', '');
 			fileInput.value = '';
 			return;
 		}
@@ -2072,7 +2072,7 @@ function initializePdfUpload() {
 				if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
 					handlePdfUpload(file);
 				} else {
-					showErrorPopup('Please drop a PDF file.', '');
+					showErrorPopup('请拖放PDF文件。', '');
 				}
 			}
 			hideDragDropOverlay();
@@ -2114,8 +2114,8 @@ function ensureDragDropOverlay() {
 					<line x1="12" x2="12" y1="2" y2="12"></line>
 				</svg>
 			</div>
-			<h2>Drop your PDF file here</h2>
-			<p>Release to upload and generate a mind map</p>
+			<h2>将PDF文件拖放到此处</h2>
+			<p>释放以上传并生成思维导图</p>
 		</div>
 	`;
 
@@ -2152,13 +2152,13 @@ async function handlePdfUpload(file) {
 
 	// PDF parsing relies on OpenRouter's file-parser plugin, unavailable locally.
 	if (isLocalProvider()) {
-		showErrorPopup('PDF upload is only available with the OpenRouter (cloud) provider. Switch providers in API key settings to use it.', '');
+		showErrorPopup('PDF 上传仅适用于 OpenRouter（云端）服务。请在 API 密钥设置中切换服务商以使用此功能。', '');
 		return;
 	}
 
 	const maxSizeBytes = 15 * 1024 * 1024;
 	if (file.size > maxSizeBytes) {
-		showErrorPopup('The PDF file is too large. Please upload a file under 15 MB.', '');
+		showErrorPopup('PDF 文件过大。请上传小于 15MB 的文件。', '');
 		return;
 	}
 
@@ -2238,7 +2238,7 @@ async function handlePdfUpload(file) {
 
 		const data = await response.json();
 		const message = data?.choices?.[0]?.message?.content;
-		if (!message) throw new Error('Invalid response from OpenRouter API');
+		if (!message) throw new Error('OpenRouter API 返回无效响应');
 
 		let parsed = null;
 		if (typeof message === 'string') {
@@ -2303,9 +2303,9 @@ async function handlePdfUpload(file) {
 	} catch (error) {
 		console.error('PDF upload error:', error);
 		if (error.message === 'FILE_TOO_LARGE') {
-			showErrorPopup('The PDF file is too large for processing. Please try a smaller file.', '');
+			showErrorPopup('PDF 文件过大无法处理。请尝试使用较小的文件。', '');
 		} else {
-			showErrorPopup(error.message || 'An error occurred while generating the mind map.', '');
+			showErrorPopup(error.message || '生成思维导图时发生错误。', '');
 		}
 	} finally {
 		generationInProgress = false;
@@ -2534,7 +2534,7 @@ function updateCurrentMindmap() {
 }
 function renderErrorMessage(container, error, markdown) {
 	const errorMessage = document.createElement('div');
-	errorMessage.textContent = 'Error rendering the mindmap: ' + error.message;
+	errorMessage.textContent = '渲染思维导图出错：' + error.message;
 	errorMessage.style.color = 'var(--error-color)';
 	errorMessage.style.padding = '20px';
 	errorMessage.style.textAlign = 'center';
@@ -2811,21 +2811,21 @@ function createManualMindMap() {
 				"branch-alignment": "right"
 			},
 			"mm-node": {
-				"content": "New Mind Map",
+				"content": "新建思维导图",
 				"children": [
 					{
-						"content": "Double click to enter text",
+						"content": "双击输入文字",
 						"children": []
 					},
 					{
-						"content": "Right-click on a node for options",
+						"content": "右键点击节点查看更多选项",
 						"children": []
 					}
 				]
 			}
 		};
 
-		try { currentMindmapTitle = defaultMM["mm-node"]?.content || 'Mind Map'; } catch (e) { }
+		try { currentMindmapTitle = defaultMM["mm-node"]?.content || '思维导图'; } catch (e) { }
 
 		try { hideInitialElements(); } catch (e) { }
 
@@ -2969,14 +2969,14 @@ function initializePopupElements() {
 	deletePopup.innerHTML = `
         <div class="popup-header">
             <h3>
-                Delete Mind Map
+                删除思维导图
             </h3>
         </div>
         <div class="popup-content">
-            <div class="popup-message">Are you sure you want to delete this mind map? This action cannot be undone.</div>
+            <div class="popup-message">确定要删除这个思维导图吗？此操作无法撤销。</div>
             <div class="popup-buttons">
-                <button class="popup-btn popup-btn-cancel" id="deleteCancelBtn">Cancel</button>
-                <button class="popup-btn popup-btn-delete" id="deleteConfirmBtn">Delete</button>
+                <button class="popup-btn popup-btn-cancel" id="deleteCancelBtn">取消</button>
+                <button class="popup-btn popup-btn-delete" id="deleteConfirmBtn">删除</button>
             </div>
         </div>
     `;
@@ -3152,27 +3152,27 @@ function loadMindMapById(id) {
 			const o = JSON.parse(mmjsonStr);
 			const r = o['mm-node'] || o.mmNode || o;
 			const t = String(r?.content || '').trim();
-			currentMindmapTitle = t.replace(/\*|~~/g, '') || 'Mind Map';
+			currentMindmapTitle = t.replace(/\*|~~/g, '') || '思维导图';
 		} catch {
-			currentMindmapTitle = 'Mind Map';
+			currentMindmapTitle = '思维导图';
 		}
 		renderMindmap(mmjsonStr);
 		currentMindmap = mindMap;
-		document.title = `${currentMindmapTitle} - Mind Map Wizard`;
+		document.title = `${currentMindmapTitle} - 思维导图向导`;
 	} else if (markdown) {
 		try {
-			let derivedTitle = 'Mind Map';
+			let derivedTitle = '思维导图';
 			const m = markdown.match(/^#{1,6}\s+(.*)$/m);
 			if (m) {
 				derivedTitle = m[1].trim().replace(/\*|~~/g, '');
 			}
 			currentMindmapTitle = derivedTitle;
 		} catch {
-			const rawTopic = mindMap.topic || 'Mind Map';
+			const rawTopic = mindMap.topic || '思维导图';
 			currentMindmapTitle = rawTopic.replace(/\*|~~/g, '');
 		}
 		renderMindmap(markdown);
-		document.title = `${currentMindmapTitle} - Mind Map Wizard`;
+		document.title = `${currentMindmapTitle} - 思维导图向导`;
 	} else {
 		console.error('Mind map has no content');
 		showErrorMessage('The mind map content is empty or corrupted.');
@@ -3214,7 +3214,7 @@ function showErrorMessage(message) {
             <div style="display: flex; align-items: center; justify-content: center; height: 100vh; flex-direction: column; text-align: center; padding: 20px;" id="inAppErrorMessage">
                 <h2 style="margin-bottom: 10px;">Something went wrong.</h2>
                 <p>${message}</p>
-                <button onclick="showHeader()" style="margin-top: 20px; padding: 8px 25px; background: var(--text-color); color: var(--white); border: none; border-radius: 40px; cursor: pointer; font-size: 0.9rem; font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Avenir", "Montserrat", "Corbel", "URW Gothic", "Source Sans Pro", sans-serif;">Close</button>
+                <button onclick="showHeader()" style="margin-top: 20px; padding: 8px 25px; background: var(--text-color); color: var(--white); border: none; border-radius: 40px; cursor: pointer; font-size: 0.9rem; font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, "Avenir", "Montserrat", "Corbel", "URW Gothic", "Source Sans Pro", sans-serif;">关闭</button>
             </div>
         `;
 		mindmapContainer.style.display = 'block';
@@ -3275,7 +3275,7 @@ function loadMindmapsLeftSidebar() {
 				const obj = JSON.parse(s);
 				const root = obj['mm-node'] || obj.mmNode || obj;
 				const t = String(root?.content || '').trim();
-				return t.replace(/\*|~~/g, '') || 'Mind Map';
+				return t.replace(/\*|~~/g, '') || '思维导图';
 			}
 
 			if (entry.markdown) {
@@ -3285,7 +3285,7 @@ function loadMindmapsLeftSidebar() {
 				}
 			}
 		} catch { }
-		return 'Mind Map';
+		return '思维导图';
 	};
 
 	list.innerHTML = sortedMindmaps
@@ -3300,7 +3300,7 @@ function loadMindmapsLeftSidebar() {
             </div>
             <div class="mindmap-actions">
                 <div class="fade-overlay"></div>
-                <button class="delete-btn" onclick="deleteMindmap('${item.id}')" title="Delete">
+                <button class="delete-btn" onclick="deleteMindmap('${item.id}')" title="删除">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
             </div>
@@ -3366,14 +3366,14 @@ function renameMindmap(id) {
 		loadMindmapsLeftSidebar();
 		if (String(currentMindmap.id) === String(id)) {
 			currentMindmapTitle = newName;
-			document.title = `${currentMindmapTitle} - Mind Map Wizard`;
+			document.title = `${currentMindmapTitle} - 思维导图向导`;
 		}
 	};
 
 	if (window.customPopups) {
 		window.customPopups.openRenamePopup(id, mindmap.topic, newNameCallback);
 	} else {
-		const newName = window.prompt('Enter a new name for this mind map:', mindmap.topic);
+		const newName = window.prompt('请输入思维导图的新名称：', mindmap.topic);
 		if (newName !== null && newName.trim() !== '') {
 			newNameCallback(id, newName.trim());
 		}
@@ -3411,7 +3411,7 @@ function deleteMindmap(id) {
 	if (window.customPopups) {
 		window.customPopups.openDeletePopup(id, deleteCallback);
 	} else {
-		if (confirm('Are you sure you want to delete this mind map? This action cannot be undone.')) {
+		if (confirm('确定要删除这个思维导图吗？此操作无法撤销。')) {
 			deleteCallback(id);
 		}
 	}
@@ -3610,7 +3610,7 @@ async function shareMindmap() {
 	const dialog = document.createElement('div');
 	dialog.className = 'share-dialog';
 	dialog.innerHTML = `
-		  <h3>Share Mind Map</h3>
+		  <h3>分享思维导图</h3>
 		  <p>Generating share link...</p>
 		  <div class="loading-spinner"></div>
 	  `;
@@ -3650,8 +3650,8 @@ async function shareMindmap() {
 
 			const copyButton = document.querySelector('.dialog-button.confirm');
 			if (copyButton) {
-				copyButton.textContent = 'Copied!';
-				setTimeout(() => { copyButton.textContent = 'Copy Link'; }, 2000);
+				copyButton.textContent = '已复制！';
+				setTimeout(() => { copyButton.textContent = '复制链接'; }, 2000);
 			}
 		}
 	}
@@ -3683,7 +3683,7 @@ async function shareMindmap() {
 
 	try {
 		updateCurrentMindmap();
-		const topic = currentMindmap.topic || currentMindmapTitle || 'Mind Map';
+		const topic = currentMindmap.topic || currentMindmapTitle || '思维导图';
 		let mmjsonStr = '';
 		try {
 			if (typeof window.currentMarkdown === 'string' && window.currentMarkdown.trim().startsWith('{')) {
@@ -3697,7 +3697,7 @@ async function shareMindmap() {
 			} catch { }
 		}
 		if (!mmjsonStr || !mmjsonStr.trim()) {
-			throw new Error('No JSON mind map available to share');
+			throw new Error('没有可分享的思维导图数据');
 		}
 		let mmjsonPayload;
 		try {
@@ -3756,12 +3756,12 @@ async function shareMindmap() {
 		dialog.innerHTML = `
 			  <div id="dialog-qr-code-container" style="margin: 20px auto; width: 144px; height: 144px;" class="qr-code-container"></div>
 			  <hr style="border: 1px solid; border-color: var(--light-grey); border-radius: 5px; margin: 10px 0 10px 0;" class="qr-code-container-hr">
-			  <h3>Share Mind Map</h3>
-			  <p>Scan the qr code or copy this link to share your mind map.</p>
+			  <h3>分享思维导图</h3>
+			  <p>扫描二维码或复制链接分享您的思维导图。</p>
 			  <input type="text" class="share-link" value="${shareUrl}" readonly>
 			  <div class="dialog-buttons">
-				  <button class="dialog-button cancel" onclick="closeShareDialog()">Close</button>
-				  <button class="dialog-button confirm" onclick="copyShareLink()">Copy Link</button>
+				  <button class="dialog-button cancel" onclick="closeShareDialog()">关闭</button>
+				  <button class="dialog-button confirm" onclick="copyShareLink()">复制链接</button>
 			  </div>
 		  `;
 
@@ -3783,22 +3783,22 @@ async function shareMindmap() {
 				});
 			} catch (qrError) {
 				console.error('Error loading QR code library or generating QR code:', qrError);
-				qrCodeContainerInDialog.innerHTML = '<p style="color: red; text-align: center; font-size: 12px;">QR code unavailable</p>';
+				qrCodeContainerInDialog.innerHTML = '<p style="color: red; text-align: center; font-size: 12px;">二维码不可用</p>';
 			}
 		} else {
 			console.error(
 				"QR code container '#dialog-qr-code-container' not found in dialog.",
 			);
 			dialog.innerHTML +=
-				'<p style="color: red; text-align: center;">Error: Could not display QR code.</p>';
+				'<p style="color: red; text-align: center;">错误：无法显示二维码。</p>';
 		}
 	} catch (error) {
 		console.error('Error sharing mindmap:', error);
 		dialog.innerHTML = `
-			  <h3>Share Mindmap</h3>
-			  <p style="color: red;">${error.message || 'Failed to share mindmap. Please try again.'}</p>
+			  <h3>分享思维导图</h3>
+			  <p style="color: red;">${error.message || '分享思维导图失败，请重试。'}</p>
 			  <div class="dialog-buttons">
-				  <button class="dialog-button cancel" onclick="closeShareDialog()">Close</button>
+				  <button class="dialog-button cancel" onclick="closeShareDialog()">关闭</button>
 			  </div>
 		  `;
 
@@ -3811,16 +3811,16 @@ async function shareMindmap() {
 }
 
 const texts = [
-	'Generate Mind Maps with AI',
-	'Generate Mind Maps with AI',
-	'Generate Mind Maps with AI',
-	'Generate Mind Maps with AI',
-	'What do you want to discover?',
-	'What do you want to discover?',
-	'What do you want to discover?',
-	'Research Made Easy',
-	'Get an Overview with AI',
-	'Get the Full Picture',
+	'AI 生成思维导图',
+	'AI 生成思维导图',
+	'AI 生成思维导图',
+	'AI 生成思维导图',
+	'想探索什么？',
+	'想探索什么？',
+	'想探索什么？',
+	'研究更轻松',
+	'用 AI 快速概览',
+	'获取完整视图',
 ];
 
 function getRandomText() {
@@ -3915,12 +3915,12 @@ function renderSearchMindmapResults(mindmapsToDisplay) {
 		resultsList.innerHTML = `
             <div class="no-results-message">
                 <h3>${searchInput?.value.trim()
-				? 'Nothing found'
-				: 'Start typing to search'
+				? '未找到结果'
+				: '输入关键词开始搜索'
 			}</h3>
                 <p>${searchInput?.value.trim()
-				? 'Try a different search term.'
-				: 'Your mind maps will appear here.'
+				? '请尝试其他搜索词。'
+				: '您的思维导图将显示在这里。'
 			}</p>
             </div>
         `;
@@ -3934,14 +3934,14 @@ function renderSearchMindmapResults(mindmapsToDisplay) {
 				const obj = JSON.parse(s);
 				const root = obj['mm-node'] || obj.mmNode || obj;
 				const t = String(root?.content || '').trim();
-				return t || 'Mind Map';
+				return t || '思维导图';
 			}
 			if (entry.markdown) {
 				const m = String(entry.markdown).match(/^#{1,6}\s+(.*)$/m);
 				if (m) return m[1].trim();
 			}
 		} catch { }
-		return 'Mind Map';
+		return '思维导图';
 	};
 
 	const searchTerm = searchInput?.value.trim() || "";
@@ -3989,14 +3989,14 @@ function filterAndDisplayMindmapsInPopup(searchTerm) {
 				const obj = JSON.parse(s);
 				const root = obj['mm-node'] || obj.mmNode || obj;
 				const t = String(root?.content || '').trim();
-				return t || 'Mind Map';
+				return t || '思维导图';
 			}
 			if (entry.markdown) {
 				const m = String(entry.markdown).match(/^#{1,6}\s+(.*)$/m);
 				if (m) return m[1].trim();
 			}
 		} catch { }
-		return 'Mind Map';
+		return '思维导图';
 	};
 
 	const filteredMindmaps = lowerCaseSearchTerm ?
@@ -4246,12 +4246,12 @@ function printMindmap() {
 		const svg = mindmapContainer?.querySelector('svg');
 
 		if (!svg) {
-			throw new Error('No mind map available to print.');
+			throw new Error('没有可打印的思维导图。');
 		}
 
 		const printWindow = window.open('', '_blank', 'width=800,height=600');
 		if (!printWindow) {
-			throw new Error('Failed to open print window. Please allow popups for this site.');
+			throw new Error('无法打开打印窗口。请允许本站的弹出窗口。');
 		}
 
 		const bbox = svg.getBBox();
@@ -4268,7 +4268,7 @@ function printMindmap() {
 			<!DOCTYPE html>
 			<html>
 			<head>
-				<title>${currentMindmapTitle || 'Mind Map'} - Print</title>
+				<title>${currentMindmapTitle || '思维导图'} - Print</title>
 				<style>
 					@media print {
 						@page {
@@ -4333,7 +4333,7 @@ function printMindmap() {
 
 	} catch (error) {
 		console.error('Print error:', error);
-		alert('Error preparing mind map for printing: ' + error.message);
+		alert('准备打印思维导图时出错：' + error.message);
 	}
 }
 
@@ -4694,7 +4694,7 @@ const DownloadHandler = {
 		pdf.setLineWidth(0.5);
 		pdf.line(0, 70, PW, 70);
 
-		const titleText = String(root.content || 'Mind Map').trim();
+		const titleText = String(root.content || '思维导图').trim();
 		pdf.setFont('helvetica', 'bold');
 		pdf.setFontSize(19);
 		pdf.setTextColor(...C_PRIMARY);
@@ -5182,7 +5182,7 @@ window.addEventListener('load', () => {
 			try { history = JSON.parse(existingHistoryJSON) || []; } catch { history = []; }
 			let changed = false;
 
-			const md2json = (md, fallbackTitle = 'Mind Map') => {
+			const md2json = (md, fallbackTitle = '思维导图') => {
 				try {
 					const lines = String(md || '').split(/\r?\n/);
 					let rootContent = fallbackTitle;
@@ -5245,7 +5245,7 @@ window.addEventListener('load', () => {
 						mindmapStr = typeof it.mmjson === 'string' ? it.mmjson : JSON.stringify(it.mmjson);
 						changed = true;
 					} else if (it.markdown) {
-						mindmapStr = md2json(it.markdown, (it.topic || 'Mind Map'));
+						mindmapStr = md2json(it.markdown, (it.topic || '思维导图'));
 						changed = true;
 					} else if (it.topic) {
 						mindmapStr = md2json(`# ${it.topic}`, it.topic);
@@ -5269,7 +5269,7 @@ window.addEventListener('load', () => {
 				let mindmapStr = null;
 				if (pg.mindmap) mindmapStr = typeof pg.mindmap === 'string' ? pg.mindmap : JSON.stringify(pg.mindmap);
 				else if (pg.mmjson) mindmapStr = typeof pg.mmjson === 'string' ? pg.mmjson : JSON.stringify(pg.mmjson);
-				else if (pg.markdown) mindmapStr = md2json(pg.markdown, (pg.topic || 'Mind Map'));
+				else if (pg.markdown) mindmapStr = md2json(pg.markdown, (pg.topic || '思维导图'));
 				else if (pg.topic) mindmapStr = md2json(`# ${pg.topic}`, pg.topic);
 				if (mindmapStr) {
 					const cleaned = { id: pg.id || Date.now(), timestamp: pg.timestamp || new Date().toISOString(), mindmap: mindmapStr };
@@ -5342,7 +5342,7 @@ async function createLocalMindMapFromMarkdown(markdownInput) {
 	} catch (error) {
 		console.error('Failed to create local mind map:', error);
 		document.getElementById('loading-animation').style.display = 'none';
-		showErrorPopup(error.message, "Error");
+		showErrorPopup(error.message, "错误");
 		throw error;
 	}
 }
