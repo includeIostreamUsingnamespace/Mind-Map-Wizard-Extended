@@ -117,6 +117,18 @@ function generateSVG(jsonString, options = {}) {
             return url.split('/')[0] || url;
         }
     }
+    function sanitizeHref(url) {
+        if (!url) return '';
+        try {
+            const u = new URL(String(url), window.location.href);
+            if (u.protocol === 'http:' || u.protocol === 'https:') {
+                return u.href;
+            }
+        } catch (e) {
+            // invalid URL, treat as unsafe
+        }
+        return '';
+    }
 
     function __mmwTrimTrailingNewlines(text) {
         return String(text || '').replace(/\n+$/, '');
@@ -242,12 +254,6 @@ function generateSVG(jsonString, options = {}) {
                 continue;
             }
 
-            if (text[i] === '*' && text[i + 1] === '*') {
-                pushBuf();
-                state.italic = !state.italic;
-                i += 1;
-                continue;
-            }
             if (text[i] === '*') {
                 pushBuf();
                 state.italic = !state.italic;
@@ -1013,20 +1019,10 @@ function generateSVG(jsonString, options = {}) {
 
 
             if (node.__isImageNode) {
-                const dimensions = getImageDimensions(node.imageSize);
-                const imageWidth = dimensions.width;
-                const imageHeight = dimensions.height;
                 let nodeTransformY = (mindmapStyle === '3' || mindmapStyle === '4') ? node.y - node.rectHeight : node.y - node.rectHeight / 2;
                 svg += `<g class="mm-node mm-image-node" data-node-id="${node.id}" transform="translate(${node.x},${nodeTransformY})">`;
                 
                 const imageRef = node.text;
-                let imageId = imageRef;
-                if (imageRef.startsWith('local:')) {
-                    imageId = imageRef.substring(6);
-                } else if (imageRef.startsWith('remote:')) {
-                    imageId = imageRef.substring(7);
-                }
-                
                 svg += `<foreignObject x="0" y="0" width="${node.rectWidth}" height="${node.rectHeight}">`;
                 svg += `<div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:${nodeRadius}px;">`;
                 svg += `<img data-local-image-id="${escapeAttr(imageRef)}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:${nodeRadius}px;" draggable="false" alt="Mind map image"/>`;
@@ -1147,9 +1143,9 @@ function generateSVG(jsonString, options = {}) {
                                     const fs = seg.italic ? ` font-style="italic"` : '';
                                     const tdSpan = seg.strike ? ` style="text-decoration: line-through;"` : '';
                                     const content = (seg.text && seg.text.length) ? escapeXml(seg.text) : '&#8203;';
-                                    if (seg.href && /^[a-z0-9+.-]+:\/\//i.test(seg.href)) {
-                                        const safeHref = escapeAttr(seg.href);
-                                        lineContent += `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; cursor: pointer; pointer-events: all;"><tspan${fw}${fs}${tdSpan}>${content}</tspan></a>`;
+                                    const safeHref = sanitizeHref(seg.href);
+                                    if (safeHref) {
+                                        lineContent += `<a href="${escapeAttr(safeHref)}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; cursor: pointer; pointer-events: all;"><tspan${fw}${fs}${tdSpan}>${content}</tspan></a>`;
                                     } else {
                                         lineContent += `<tspan${fw}${fs}${tdSpan}>${content}</tspan>`;
                                     }
@@ -1289,20 +1285,11 @@ function generateSVG(jsonString, options = {}) {
         }
 
         if (node.__isImageNode) {
-            const dimensions = getImageDimensions(node.imageSize);
-            const imageWidth = dimensions.width;
-            const imageHeight = dimensions.height;
             let nodeTransformY = (mindmapStyle === '3' || mindmapStyle === '4') ? node.y - node.rectHeight : node.y - node.rectHeight / 2;
             let s = '';
             s += `<g class="mm-node mm-image-node" data-node-id="${node.id}" transform="translate(${node.x},${nodeTransformY})">`;
             
             const imageRef = node.text;
-            let imageId = imageRef;
-            if (imageRef.startsWith('local:')) {
-                imageId = imageRef.substring(6);
-            } else if (imageRef.startsWith('remote:')) {
-                imageId = imageRef.substring(7);
-            }
             
             s += `<foreignObject x="0" y="0" width="${node.rectWidth}" height="${node.rectHeight}">`;
             s += `<div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:${nodeRadius}px;">`;
@@ -1436,9 +1423,9 @@ function generateSVG(jsonString, options = {}) {
                                 const fs = seg.italic ? ` font-style="italic"` : '';
                                 const tdSpan = seg.strike ? ` style="text-decoration: line-through;"` : '';
                                 const content = (seg.text && seg.text.length) ? escapeXml(seg.text) : '&#8203;';
-                                if (seg.href && /^[a-z0-9+.-]+:\/\//i.test(seg.href)) {
-                                    const safeHref = escapeAttr(seg.href);
-                                    lineContent += `<a href="${safeHref}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; cursor: pointer; pointer-events: all;"><tspan${fw}${fs}${tdSpan}>${content}</tspan></a>`;
+                                const safeHref = sanitizeHref(seg.href);
+                                if (safeHref) {
+                                    lineContent += `<a href="${escapeAttr(safeHref)}" target="_blank" rel="noopener noreferrer" style="text-decoration: underline; cursor: pointer; pointer-events: all;"><tspan${fw}${fs}${tdSpan}>${content}</tspan></a>`;
                                 } else {
                                     lineContent += `<tspan${fw}${fs}${tdSpan}>${content}</tspan>`;
                                 }
@@ -1492,7 +1479,7 @@ function generateSVG(jsonString, options = {}) {
                         const bw = item.width || 0;
                         if (item.type === 'badge') {
                             const { link, domain } = item;
-                            const safeLink = escapeAttr(link);
+                            const safeLink = escapeAttr(sanitizeHref(link));
                             const badgeHPadding = 12;
                             const iconSize = 12;
                             const iconGap = 4;
@@ -1543,7 +1530,7 @@ function generateSVG(jsonString, options = {}) {
                                 remainingLinks.forEach((l, i) => {
                                     const d = getDomain(l);
                                     const ly = 5 + i * ttItemHeight + 16;
-                                    const safeL = escapeAttr(l);
+                                    const safeL = escapeAttr(sanitizeHref(l));
                                     let dText = d.length > 30 ? d.slice(0, 27) + '...' : d;
                                     const linkIconSize = 12;
                                     const linkIconX = 10;
@@ -1821,8 +1808,8 @@ function generateSVG(jsonString, options = {}) {
 function hierarchyToJson(hierarchy) {
     function convertNodeToJson(node) {
         const jsonNode = {
-            content: node.text,
-            children: node.children.map(convertNodeToJson)
+            content: node.text || '',
+            children: (node.children || []).map(convertNodeToJson)
         };
         if (node.collapsed) jsonNode.collapsed = true;
         if (node.branchColor) {
@@ -1833,6 +1820,12 @@ function hierarchyToJson(hierarchy) {
         }
         if (node.citations && Array.isArray(node.citations) && node.citations.length > 0) {
             jsonNode.citations = node.citations;
+        }
+        if (node.imageSize && node.text && typeof node.text === 'string' && window.isImageRef && window.isImageRef(node.text)) {
+            jsonNode.imageSize = node.imageSize;
+        }
+        if (node.checked !== undefined) {
+            jsonNode.checked = node.checked;
         }
         return jsonNode;
     }

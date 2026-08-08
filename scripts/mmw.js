@@ -366,6 +366,11 @@ function findPreviousNonEmptyLine(lines) {
 }
 
 function showError(errorMessage, hideRetry, input) {
+	const safeErrorMessage = String(errorMessage || '未知错误')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
 	let errorPopup = document.createElement('div');
 	errorPopup.id = 'error-popup';
 	errorPopup.className = 'error-popup';
@@ -378,7 +383,7 @@ function showError(errorMessage, hideRetry, input) {
                     <br>
                     <br>
                     <div style="width: 100%; border-radius: 16px; text-align: left; background-color: #F9FAFC; padding: 15px;">
-                        <p style="font-size: 0.9em; color: var(--text-color);">${errorMessage || '未知错误'}</p>
+                        <p style="font-size: 0.9em; color: var(--text-color);">${safeErrorMessage}</p>
                     </div>
             ${retryButtonHtml}
 			<button id="closeErrorPopupBtn">关闭</button>
@@ -651,21 +656,12 @@ window.onload = function () {
 	);
 };
 
-function removeQueryParam(param) {
-	if (!param) return;
-
-	const url = new URL(window.location.href);
-	if (!url.searchParams.has(param)) return;
-
-	url.searchParams.delete(param);
-
-	const newUrl =
-		url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + (url.hash || '');
-
-	history.replaceState(null, document.title, newUrl);
-}
-
 function showErrorPopup(errorMessage, input) {
+	const safeErrorMessage = String(errorMessage || '')
+		.replace(/&/g, '&amp;')
+		.replace(/</g, '&lt;')
+		.replace(/>/g, '&gt;')
+		.replace(/"/g, '&quot;');
 	let errorPopup = document.getElementById('error-popup');
 
 	if (!errorPopup) {
@@ -681,7 +677,7 @@ function showErrorPopup(errorMessage, input) {
                     <br>
                     <div style="width: 100%; border-radius: 16px; text-align: left; background-color: #F9FAFC; padding: 15px;">
                         <p style="font-size: 1em; color: var(--text-color); font-weight: bold; margin-bottom: 5px;">详细信息</p>
-                        <p style="font-size: 0.9em; color: var(--text-color);">${errorMessage}</p>
+                        <p style="font-size: 0.9em; color: var(--text-color);">${safeErrorMessage}</p>
                     </div>
             <button id="retryBtn">重试</button>
 			<button id="closeErrorPopupBtn">关闭</button>
@@ -918,22 +914,38 @@ function markdownToMmJson(md) {
 			const lvl = m[1].length;
 			const text = m[2].trim();
 			const node = { content: text, children: [] };
-			while (stack.length && stack[stack.length - 1].level >= lvl) stack.pop();
+			while (
+				stack.length &&
+				(stack[stack.length - 1].isBullet || stack[stack.length - 1].level >= lvl)
+			) {
+				stack.pop();
+			}
 			const parent = stack[stack.length - 1]?.node || root;
 			parent.children.push(node);
 			stack.push({ level: lvl, node });
 			return;
 		}
 
-		const b = line.match(/^([-*+]|\d+\.)\s+(.*)$/);
+		const b = raw.match(/^(\s*)([-*+]|\d+\.)\s+(.*)$/);
 		if (b) {
-			const text = b[2].trim();
+			const indentRaw = b[1] || '';
+			const text = b[3].trim();
+			const indent = Math.floor(indentRaw.replace(/\t/g, '    ').length / 2);
 			const node = { content: text, children: [] };
-			while (stack.length > 1 && stack[stack.length - 1].isBullet) {
-				stack.pop();
+			let parent = stack[stack.length - 1]?.node || root;
+			const last = stack[stack.length - 1];
+			if (last?.isBullet) {
+				if (indent > last.indent) {
+					parent = last.node;
+				} else {
+					while (stack.length > 1 && stack[stack.length - 1].isBullet && stack[stack.length - 1].indent >= indent) {
+						stack.pop();
+					}
+					parent = stack[stack.length - 1]?.node || root;
+				}
 			}
-			const parent = stack[stack.length - 1]?.node || root;
 			parent.children.push(node);
+			stack.push({ isBullet: true, indent, node });
 			return;
 		}
 

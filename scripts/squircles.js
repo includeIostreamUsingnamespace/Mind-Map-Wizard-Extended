@@ -156,39 +156,50 @@
 
     window.addEventListener('load', processAllStyleSheets);
 
-    const observer = new MutationObserver((mutations) => {
-        let shouldProcessSheets = false;
+    let _rafPending = false;
+    let _pendingMutations = [];
 
-        mutations.forEach(mutation => {
-            if (mutation.type === 'childList') {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1) { 
-                        if (node.nodeName === 'STYLE' || (node.nodeName === 'LINK' && node.rel === 'stylesheet')) {
-                            shouldProcessSheets = true;
-                            if (node.nodeName === 'LINK') {
-                                node.addEventListener('load', () => processStyleSheet(node.sheet));
+    const observer = new MutationObserver((mutations) => {
+        _pendingMutations.push(...mutations);
+        if (_rafPending) return;
+        _rafPending = true;
+        requestAnimationFrame(() => {
+            _rafPending = false;
+            const batch = _pendingMutations;
+            _pendingMutations = [];
+            let shouldProcessSheets = false;
+
+            batch.forEach(mutation => {
+                if (mutation.type === 'childList') {
+                    mutation.addedNodes.forEach(node => {
+                        if (node.nodeType === 1) { 
+                            if (node.nodeName === 'STYLE' || (node.nodeName === 'LINK' && node.rel === 'stylesheet')) {
+                                shouldProcessSheets = true;
+                                if (node.nodeName === 'LINK') {
+                                    node.addEventListener('load', () => processStyleSheet(node.sheet));
+                                }
+                            }
+
+                            if (node.hasAttribute('style')) {
+                                processInlineStyles(node);
+                            }
+                            const styledChildren = node.querySelectorAll('[style]');
+                            for (let i = 0; i < styledChildren.length; i++) {
+                                processInlineStyles(styledChildren[i]);
                             }
                         }
+                    });
+                }
 
-                        if (node.hasAttribute('style')) {
-                            processInlineStyles(node);
-                        }
-                        const styledChildren = node.querySelectorAll('[style]');
-                        for (let i = 0; i < styledChildren.length; i++) {
-                            processInlineStyles(styledChildren[i]);
-                        }
-                    }
-                });
-            }
+                if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                    processInlineStyles(mutation.target);
+                }
+            });
 
-            if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-                processInlineStyles(mutation.target);
+            if (shouldProcessSheets) {
+                processAllStyleSheets();
             }
         });
-
-        if (shouldProcessSheets) {
-            processAllStyleSheets();
-        }
     });
 
     observer.observe(document.documentElement, {

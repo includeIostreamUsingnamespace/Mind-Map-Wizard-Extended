@@ -1292,17 +1292,21 @@ async function autoSaveMindMapToBackend() {
         return;
     }
 
-    if (typeof window.mmJsonToMarkdown !== 'function') {
-        return;
-    }
-
     if (typeof window.saveMindMap !== 'function' && typeof saveMindMap !== 'function') {
         return;
     }
 
     try {
         const jsonContent = editor.value;
-        const markdown = jsonContent;
+        let markdown = jsonContent;
+        if (typeof window.mmJsonToMarkdown === 'function') {
+            try {
+                markdown = window.mmJsonToMarkdown(jsonContent);
+            } catch (convErr) {
+                console.error('Failed to convert JSON to markdown:', convErr);
+                markdown = jsonContent;
+            }
+        }
 
         const saveFn = window.saveMindMap || saveMindMap;
         await saveFn(
@@ -1426,6 +1430,26 @@ function initInteraction() {
                         HistoryManager.redo();
                     }
                 }
+                return;
+            }
+
+            // Node-operation shortcuts, active only when the mind map is visible,
+            // a node is selected, and the page is not in read-only mode.
+            const mindmapVisible = document.getElementById('mindmap')?.style.display === 'block';
+            if (!mindmapVisible || window.MMW_READONLY || !window.currentNodeElement) return;
+
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                if (typeof window.addChildNode === 'function') window.addChildNode();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (typeof window.addSiblingNode === 'function') window.addSiblingNode();
+            } else if (e.key === 'Delete') {
+                e.preventDefault();
+                if (typeof window.deleteNode === 'function') window.deleteNode();
+            } else if (e.key === ' ') {
+                e.preventDefault();
+                if (typeof window.toggleNodeCollapse === 'function') window.toggleNodeCollapse();
             }
         });
 
@@ -1519,6 +1543,35 @@ function __mmwComposeJsonWithCurrentSettings(hierarchy) {
     }
 }
 
+let __mmwLocalSaveTimer = null;
+let __mmwLastLocalJson = null;
+
+function __mmwDebouncedSaveToLocalStorage(json) {
+    if (json === __mmwLastLocalJson) return;
+    __mmwLastLocalJson = json;
+    if (__mmwLocalSaveTimer) clearTimeout(__mmwLocalSaveTimer);
+    __mmwLocalSaveTimer = setTimeout(() => {
+        __mmwLocalSaveTimer = null;
+        try {
+            localStorage.setItem(localStorageKey, json);
+        } catch (e) {
+            console.warn('Failed to save mindmap to localStorage:', e);
+        }
+    }, 300);
+}
+
+window.addEventListener('unload', () => {
+    if (__mmwLocalSaveTimer) {
+        clearTimeout(__mmwLocalSaveTimer);
+        __mmwLocalSaveTimer = null;
+    }
+    if (__mmwLastLocalJson != null) {
+        try {
+            localStorage.setItem(localStorageKey, __mmwLastLocalJson);
+        } catch (e) { }
+    }
+});
+
 function updateMindMap() {
     if (!editor) {
         initInteraction();
@@ -1526,7 +1579,7 @@ function updateMindMap() {
     }
     const json = editor.value;
     if (!window.MMW_READONLY) {
-        localStorage.setItem(localStorageKey, json);
+        __mmwDebouncedSaveToLocalStorage(json);
     }
 
     let newHierarchy;
@@ -1715,6 +1768,8 @@ function attachEventListeners() {
         const canDragBranch = !!(dragMatch && dragMatch.parent && nodeId !== '0' && Array.isArray(dragMatch.parent.children));
         node.style.cursor = canDragBranch ? 'grab' : '';
 
+        if (node.__mmwListenersAttached) return;
+
         let clickCount = 0;
         let clickTimer = null;
         const clickDelay = 360;
@@ -1802,6 +1857,7 @@ function attachEventListeners() {
         };
 
         if (window.MMW_READONLY) return;
+        node.__mmwListenersAttached = true;
 
         node.addEventListener('touchstart', handleStart, { passive: true });
         node.addEventListener('touchmove', handleMove, { passive: true });
@@ -1968,6 +2024,10 @@ function editNodeText(nodeElement) {
     const editFontWeight = isTitleNode ? '700' : '400';
 
     if (nodeElement.querySelector('foreignObject.node-edit-fo')) return;
+
+    if (typeof HistoryManager !== 'undefined' && HistoryManager.captureState) {
+        HistoryManager.captureState();
+    }
 
     function findNodeById(node, id) {
         if (node.id === id) return node;
@@ -2650,6 +2710,11 @@ function editNodeText(nodeElement) {
                         value = 'https://' + value;
                     }
 
+                    if (!/^https?:\/\/[^\s.]+\.[^\s]+$/i.test(value)) {
+                        alert('请输入有效的网址，例如 https://example.com');
+                        return;
+                    }
+
                     document.body.removeChild(backdrop);
                     callback(value);
                 };
@@ -2851,8 +2916,9 @@ function showContextMenu(e) {
     }
 
     const targetNode = findNodeById(currentHierarchy, nodeElement.getAttribute('data-node-id'));
+    if (!targetNode) return;
 
-    const isLevelDeepEnough = targetNode && targetNode.level >= 2;
+    const isLevelDeepEnough = targetNode.level >= 2;
 
     const menu = document.createElement('div');
     menu.className = 'context-menu';
@@ -2871,18 +2937,25 @@ function showContextMenu(e) {
                     <div class="context-menu-buttons-container">
                         <div class="context-menu-colors" style="display: flex; gap: 7px; padding: 4px 0px 8px 2px; justify-content: center; flex-wrap: wrap;  margin-bottom: 4px;">
                             ${['rgb(255, 127, 15)', 'rgb(0, 191, 191)', 'rgb(255, 64, 129)', 'rgb(206, 91, 255)', 'rgb(50, 205, 53)', 'rgb(255, 191, 0)', 'rgb(3, 169, 244)'].map(color => `
-                                <div onclick="setBranchColor('${color}')" style="width: 18px; height: 18px; border-radius: 50%; background-color: ${color}; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); transition: transform 0.1s; opacity: 0.8; corner-shape: round !important;"></div>
+                                <div data-action="setBranchColor" data-color="${color}" style="width: 18px; height: 18px; border-radius: 50%; background-color: ${color}; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); transition: transform 0.1s; opacity: 0.8; corner-shape: round !important;"></div>
                             `).join('')}
                         </div>
-                        ${(!targetNode.collapsed) ? `<div class="context-menu-button" onclick="addChildNode()">
+                        ${(!targetNode.collapsed) ? `<div class="context-menu-button" data-action="addChildNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <path d="M5 12h14"/>
                                 <path d="M12 5v14"/>
                             </svg>
                             添加分支
                         </div>` : ''}
+
+                        <div class="context-menu-button" data-action="addSiblingNode">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
+                                <path d="M5 12h14"/>
+                            </svg>
+                            添加同级节点
+                        </div>
                         
-                        ${(!targetNode.collapsed) ? `<div class="context-menu-button" onclick="showImageUploadPopup()">
+                        ${(!targetNode.collapsed) ? `<div class="context-menu-button" data-action="showImageUploadPopup">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
                                 <circle cx="9" cy="9" r="2"/>
@@ -2891,7 +2964,7 @@ function showContextMenu(e) {
                             添加图片
                         </div>` : ''}
                         
-                         ${(!targetNode.notes) ? `<div class="context-menu-button" onclick="window.openNotesDrawer('${targetNode.id}', 'menu')">
+                         ${(!targetNode.notes) ? `<div class="context-menu-button" data-action="openNotesDrawer">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <path d="M21 5H3"/>
                                 <path d="M15 12H3"/>
@@ -2900,19 +2973,19 @@ function showContextMenu(e) {
                             添加笔记
                         </div>` : ''}
 
-                        ${targetNode && targetNode.checked === undefined ? `<div class="context-menu-button" onclick="window.toggleCheckbox()">
+                        ${targetNode.checked === undefined ? `<div class="context-menu-button" data-action="toggleCheckbox">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                             </svg>
                             添加复选框
-                        </div>` : `<div class="context-menu-button" onclick="window.toggleCheckbox()">
+                        </div>` : `<div class="context-menu-button" data-action="toggleCheckbox">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: -2px;">
                                 <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                             </svg>
                             移除复选框
                         </div>`}
                         
-                         ${isLevelDeepEnough ? `<div class="context-menu-button ai-expand-button" onclick="expandMindMapNode()">
+                         ${isLevelDeepEnough ? `<div class="context-menu-button ai-expand-button" data-action="expandMindMapNode">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M8 12C13 12 11 6 16 6" />
                         <path d="M8 12C13 12 11 18 16 18" />
@@ -2925,7 +2998,7 @@ function showContextMenu(e) {
                         <div class="context-menu-divider" style="margin: 6px 0; height: 1px; background: var(--border-color, #e8ecef);"></div>
 
                         <!-- 插入子菜单 -->
-                        <div class="context-menu-button ai-menu-item" onmouseenter="window.showInsertSubmenu(this)" onmouseleave="window.hideInsertSubmenuDelayed(this)">
+                        <div class="context-menu-button ai-menu-item" data-action="showInsertSubmenu">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M5 12h14"/><path d="M12 5v14"/>
                             </svg>
@@ -2935,28 +3008,28 @@ function showContextMenu(e) {
                             </svg>
                         </div>
 
-                        <div class="context-menu-button ai-menu-item" onclick="window.aiResearchNode()">
+                        <div class="context-menu-button ai-menu-item" data-action="aiResearchNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.34-4.34"/>
                             </svg>
                             AI 深度调研
                         </div>
 
-                        <div class="context-menu-button ai-menu-item" onclick="window.aiPolishNode()">
+                        <div class="context-menu-button ai-menu-item" data-action="aiPolishNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
                             </svg>
                             AI 润色文字
                         </div>
 
-                        <div class="context-menu-button ai-menu-item" onclick="window.aiSummarizeNode()">
+                        <div class="context-menu-button ai-menu-item" data-action="aiSummarizeNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
                             </svg>
                             AI 一键总结
                         </div>
 
-                        <div class="context-menu-button ai-menu-item" onclick="window.aiRestructureNode()">
+                        <div class="context-menu-button ai-menu-item" data-action="aiRestructureNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
                             </svg>
@@ -2964,7 +3037,7 @@ function showContextMenu(e) {
                         </div>
 
 
-                        ${!(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" onclick="editNode()">
+                        ${!(targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" data-action="editNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.1rem" height="1.1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M13 21h8"/>
                                 <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5 .5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>
@@ -2972,27 +3045,27 @@ function showContextMenu(e) {
                             编辑节点
                         </div>` : ''}
                         
-                        ${(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button has-submenu" onmouseenter="showImageSizeSubmenu(event, '${targetNode.imageSize || 'medium'}')">
+                        ${(targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button has-submenu" data-action="showImageSizeSubmenu">
                         <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-proportions-icon lucide-proportions"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M12 9v11"/><path d="M2 9h13a2 2 0 0 1 2 2v9"/></svg>
                             尺寸
                         </div>` : ''}
                         
-                        ${(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" onclick="downloadImage()">
+                        ${(targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" data-action="downloadImage">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-download-icon lucide-download"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
                             下载图片
                         </div>` : ''}
                         
-                        ${(targetNode && targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" onclick="showReplaceImagePopup()">
+                        ${(targetNode.text && typeof targetNode.text === 'string' && window.isImageRef && window.isImageRef(targetNode.text)) ? `<div class="context-menu-button" data-action="showReplaceImagePopup">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-repeat-icon lucide-repeat"><path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg>                            替换图片
                         </div>` : ''}
 
-                        ${(isLevelDeepEnough && targetNode.children && targetNode.children.length > 0 && !targetNode.collapsed) ? `<div class="context-menu-button" onclick="collapseNodeChildren()">
+                        ${(isLevelDeepEnough && targetNode.children && targetNode.children.length > 0 && !targetNode.collapsed) ? `<div class="context-menu-button" data-action="collapseNodeChildren">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg>
                             折叠子节点
                         </div>` : ''}
 
                         ${(targetNode && __mmwHasMarkdownStyles(targetNode.text)) ? `
-                        <div class="context-menu-button" onclick="removeStylingFromNode()">
+                        <div class="context-menu-button" data-action="removeStylingFromNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-remove-formatting-icon lucide-remove-formatting">
                                 <path d="M4 7V4h16v3"/>
                                 <path d="M5 20h6"/>
@@ -3003,15 +3076,15 @@ function showContextMenu(e) {
                             移除样式
                         </div>` : ''}
 
-                        ${(targetNode && targetNode.branchColor) ? `
-                        <div class="context-menu-button" onclick="resetBranchColor()">
+                        ${(targetNode.branchColor) ? `
+                        <div class="context-menu-button" data-action="resetBranchColor">
                              <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
                                 <path d="M3 3v5h5"/>
                             </svg>
                             重置颜色
                         </div>` : ''}
-                        ${isLevelDeepEnough ? `<div class="context-menu-button delete-node-button" onclick="deleteNode()">
+                        ${isLevelDeepEnough ? `<div class="context-menu-button delete-node-button" data-action="deleteNode">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.55rem" height="1.55rem" viewBox="-5 -5 34 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="delete-node-icon">
                                 <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                 <path d="M3 6h18"></path>
@@ -3022,6 +3095,49 @@ function showContextMenu(e) {
                     </div>
                 `;
     document.body.appendChild(menu);
+
+    const menuBtn = (action) => menu.querySelector(`[data-action="${action}"]`);
+    const notesBtn = menuBtn('openNotesDrawer');
+    if (notesBtn) notesBtn.setAttribute('data-node-id', targetNode.id);
+    const sizeBtn = menuBtn('showImageSizeSubmenu');
+    if (sizeBtn) sizeBtn.setAttribute('data-image-size', targetNode.imageSize || 'medium');
+
+    const contextMenuActions = {
+        setBranchColor: (btn) => { if (window.setBranchColor) window.setBranchColor(btn.getAttribute('data-color')); },
+        addChildNode: () => { if (window.addChildNode) window.addChildNode(); },
+        addSiblingNode: () => { if (window.addSiblingNode) window.addSiblingNode(); },
+        showImageUploadPopup: () => { if (window.showImageUploadPopup) window.showImageUploadPopup(); },
+        openNotesDrawer: (btn) => { if (window.openNotesDrawer) window.openNotesDrawer(btn.getAttribute('data-node-id'), 'menu'); },
+        toggleCheckbox: () => { if (window.toggleCheckbox) window.toggleCheckbox(); },
+        expandMindMapNode: () => { if (typeof expandMindMapNode === 'function') expandMindMapNode(); },
+        aiResearchNode: () => { if (window.aiResearchNode) window.aiResearchNode(); },
+        aiPolishNode: () => { if (window.aiPolishNode) window.aiPolishNode(); },
+        aiSummarizeNode: () => { if (window.aiSummarizeNode) window.aiSummarizeNode(); },
+        aiRestructureNode: () => { if (window.aiRestructureNode) window.aiRestructureNode(); },
+        editNode: () => { if (window.editNode) window.editNode(); },
+        downloadImage: () => { if (window.downloadImage) window.downloadImage(); },
+        showReplaceImagePopup: () => { if (window.showReplaceImagePopup) window.showReplaceImagePopup(); },
+        collapseNodeChildren: () => { if (window.collapseNodeChildren) window.collapseNodeChildren(); },
+        removeStylingFromNode: () => { if (window.removeStylingFromNode) window.removeStylingFromNode(); },
+        resetBranchColor: () => { if (window.resetBranchColor) window.resetBranchColor(); },
+        deleteNode: () => { if (window.deleteNode) window.deleteNode(); }
+    };
+
+    menu.addEventListener('click', (ev) => {
+        const btn = ev.target && typeof ev.target.closest === 'function' ? ev.target.closest('[data-action]') : null;
+        if (!btn || !menu.contains(btn)) return;
+        const handler = contextMenuActions[btn.getAttribute('data-action')];
+        if (handler) handler(btn);
+    });
+
+    const insertItem = menuBtn('showInsertSubmenu');
+    if (insertItem) {
+        insertItem.addEventListener('mouseenter', () => { if (window.showInsertSubmenu) window.showInsertSubmenu(insertItem); });
+        insertItem.addEventListener('mouseleave', () => { if (window.hideInsertSubmenuDelayed) window.hideInsertSubmenuDelayed(); });
+    }
+    if (sizeBtn) {
+        sizeBtn.addEventListener('mouseenter', (ev) => { if (window.showImageSizeSubmenu) window.showImageSizeSubmenu(ev, sizeBtn.getAttribute('data-image-size') || 'medium'); });
+    }
 
     menu.style.transform = 'scale(1)'; 
     const rect = menu.getBoundingClientRect();
@@ -3122,6 +3238,90 @@ window.addChildNode = function () {
     if (!window.currentNodeElement) return;
     const clickedNodeId = window.currentNodeElement.getAttribute('data-node-id');
     window.addChildNodeFor(clickedNodeId);
+};
+
+window.addSiblingNodeFor = function (targetNodeId) {
+    if (!targetNodeId) return;
+
+    closeContextMenus();
+
+    function findNodeAndParent(node, id, parent = null) {
+        if (node.id === id) return { node, parent };
+        for (const child of node.children) {
+            const found = findNodeAndParent(child, id, node);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    const result = findNodeAndParent(currentHierarchy, targetNodeId);
+    if (!result || !result.parent) return;
+    const { node, parent } = result;
+
+    const newStableId = __mmwGenerateUid();
+    const newNode = {
+        text: '新节点',
+        children: [],
+        level: node.level,
+        parent: parent,
+        id: newStableId
+    };
+    HistoryManager.captureState();
+    const idx = parent.children.indexOf(node);
+    parent.children.splice(idx + 1, 0, newNode);
+
+    const json = __mmwComposeJsonWithCurrentSettings(currentHierarchy);
+    editor.value = json;
+    localStorage.setItem(localStorageKey, json);
+    updateMindMap();
+
+    triggerAutoSave();
+
+    setTimeout(() => {
+        const updated = findNodeAndParent(currentHierarchy, newStableId);
+        let actualId = newStableId;
+        if (!updated) {
+            // stable-id reassignment changed the new node's id; locate the sibling via text
+            const parentRes = findNodeAndParent(currentHierarchy, targetNodeId);
+            if (parentRes && parentRes.parent) {
+                const sibling = parentRes.parent.children.find(ch => ch.text === '新节点' && ch.id !== targetNodeId);
+                if (sibling) actualId = sibling.id;
+            }
+        }
+        const newNodeElement = preview.querySelector(`[data-node-id="${actualId}"]`);
+        if (newNodeElement) {
+            editNodeText(newNodeElement);
+        }
+    }, 600);
+};
+
+window.addSiblingNode = function () {
+    if (!window.currentNodeElement) return;
+    const nodeId = window.currentNodeElement.getAttribute('data-node-id');
+    if (nodeId) window.addSiblingNodeFor(nodeId);
+};
+
+window.toggleNodeCollapse = function () {
+    if (!window.currentNodeElement) return;
+    const nodeId = window.currentNodeElement.getAttribute('data-node-id');
+    if (!nodeId) return;
+
+    function findNodeById(node, id) {
+        if (node.id === id) return node;
+        for (const child of node.children) {
+            const found = findNodeById(child, id);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    const target = findNodeById(currentHierarchy, nodeId);
+    if (!target || !target.children || target.children.length === 0) return;
+    if (target.collapsed) {
+        if (typeof window.expandNodeChildren === 'function') window.expandNodeChildren(nodeId);
+    } else {
+        if (typeof window.collapseNodeChildren === 'function') window.collapseNodeChildren();
+    }
 };
 
 window.showImageUploadPopup = async function () {
@@ -3305,7 +3505,7 @@ window.showImageUploadPopup = async function () {
     });
     
     cancelBtn.addEventListener('click', () => {
-        document.body.removeChild(backdrop);
+        closePopup();
     });
     
     let isUploading = false;
@@ -3325,7 +3525,7 @@ window.showImageUploadPopup = async function () {
                 window.addImageNodeFor(clickedNodeId, imageRef);
             }
             
-            document.body.removeChild(backdrop);
+            closePopup();
         } finally {
             isUploading = false;
             confirmBtn.disabled = false;
@@ -3334,16 +3534,23 @@ window.showImageUploadPopup = async function () {
     
     backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) {
-            document.body.removeChild(backdrop);
+            closePopup();
         }
     });
     
-    const handleKeydown = (e) => {
-        if (e.key === 'Escape') {
-            document.body.removeChild(backdrop);
-            document.removeEventListener('keydown', handleKeydown);
+    function closePopup() {
+        document.removeEventListener('keydown', handleKeydown);
+        if (backdrop && backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
         }
-    };
+    }
+
+    function handleKeydown(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closePopup();
+        }
+    }
     document.addEventListener('keydown', handleKeydown);
 };
 
@@ -3518,7 +3725,7 @@ window.showReplaceImagePopup = async function () {
     });
     
     cancelBtn.addEventListener('click', () => {
-        document.body.removeChild(backdrop);
+        closePopup();
     });
     
     let isUploading = false;
@@ -3541,7 +3748,7 @@ window.showReplaceImagePopup = async function () {
                 window.replaceImageNodeFor(clickedNodeId, newImageRef);
             }
             
-            document.body.removeChild(backdrop);
+            closePopup();
         } catch (err) {
             console.error('Failed to replace image:', err);
             confirmBtn.disabled = false;
@@ -3555,16 +3762,23 @@ window.showReplaceImagePopup = async function () {
     
     backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) {
-            document.body.removeChild(backdrop);
+            closePopup();
         }
     });
     
-    const handleKeydown = (e) => {
-        if (e.key === 'Escape') {
-            document.body.removeChild(backdrop);
-            document.removeEventListener('keydown', handleKeydown);
+    function closePopup() {
+        document.removeEventListener('keydown', handleKeydown);
+        if (backdrop && backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
         }
-    };
+    }
+
+    function handleKeydown(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closePopup();
+        }
+    }
     document.addEventListener('keydown', handleKeydown);
 };
 
@@ -3750,7 +3964,7 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
     });
     
     cancelBtn.addEventListener('click', () => {
-        document.body.removeChild(backdrop);
+        closePopup();
     });
     
     let isUploading = false;
@@ -3775,7 +3989,7 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
                 window.replaceImageNodeFor(nodeId, newImageRef);
             }
             
-            document.body.removeChild(backdrop);
+            closePopup();
         } catch (err) {
             console.error('Failed to replace image:', err);
             confirmBtn.disabled = false;
@@ -3789,16 +4003,23 @@ window.showReplaceImagePopupForNode = async function (nodeId, oldImageRef) {
     
     backdrop.addEventListener('click', (e) => {
         if (e.target === backdrop) {
-            document.body.removeChild(backdrop);
+            closePopup();
         }
     });
     
-    const handleKeydown = (e) => {
-        if (e.key === 'Escape') {
-            document.body.removeChild(backdrop);
-            document.removeEventListener('keydown', handleKeydown);
+    function closePopup() {
+        document.removeEventListener('keydown', handleKeydown);
+        if (backdrop && backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
         }
-    };
+    }
+
+    function handleKeydown(e) {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            closePopup();
+        }
+    }
     document.addEventListener('keydown', handleKeydown);
 };
 
@@ -4477,8 +4698,6 @@ function updateSVGWithAnimations(newHierarchy, contextLinks = []) {
         return;
     }
     const stage = svg.querySelector('.mm-stage') || svg;
-
-    try { generateSVG(editor.value, { contextUrls: contextLinks }); } catch (e) { }
 
     assignBranchColors(newHierarchy);
     processNode(newHierarchy);
@@ -5274,44 +5493,6 @@ function __mmwExtractFontFamiliesFromJson(json) {
 window.fitToScreen = fitToScreen;
 window.zoomMindMap = zoom;
 
-function hierarchyToJson(hierarchy) {
-    function convert(node) {
-        const obj = {
-            content: node.text || '',
-            children: []
-        };
-        if (node.collapsed) obj.collapsed = true;
-        if (node.branchColor) {
-            obj.branchColor = node.branchColor;
-        }
-        if (node.notes && node.notes.trim().length > 0) {
-            obj.notes = node.notes;
-        }
-        if (node.citations && Array.isArray(node.citations) && node.citations.length > 0) {
-            obj.citations = node.citations;
-        }
-        if (node.imageSize && node.text && typeof node.text === 'string' && window.isImageRef && window.isImageRef(node.text)) {
-            obj.imageSize = node.imageSize;
-        }
-        if (node.checked !== undefined) {
-            obj.checked = node.checked;
-        }
-        if (node.children && node.children.length > 0) {
-            obj.children = node.children.map(convert);
-        }
-        return obj;
-    }
-
-    const root = convert(hierarchy.children[0]);
-
-
-    if (hierarchy.id === 'root' && hierarchy.text === 'Root' && hierarchy.children.length > 0) {
-        return JSON.stringify({ "mm-node": convert(hierarchy.children[0]) }, null, 2);
-    } else {
-        return JSON.stringify({ "mm-node": convert(hierarchy) }, null, 2);
-    }
-}
-
 function resetMindMapHistory() {
     if (typeof HistoryManager !== 'undefined') {
         HistoryManager.undoStack = [];
@@ -5550,7 +5731,7 @@ window.hideInsertSubmenuDelayed = function() {
         if (sm && !sm.matches(':hover')) {
             sm.remove();
         }
-    }, 200);
+    }, 350);
 };
 
 // ---- New AI Insert Functions ----

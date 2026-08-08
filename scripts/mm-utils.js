@@ -178,9 +178,6 @@
                 try {
                     if (!window.__mmwEngineBooted) {
                         window.__mmwEngineBooted = true;
-                        if (document.readyState !== 'loading') {
-                            document.dispatchEvent(new Event('DOMContentLoaded'));
-                        }
                     }
                 } catch { }
             })

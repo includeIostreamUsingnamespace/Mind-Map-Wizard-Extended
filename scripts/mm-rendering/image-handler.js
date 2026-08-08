@@ -381,11 +381,35 @@ const ImageHandler = {
             
             if (images.length === 0) return;
             
+            // Collect local: references currently used by the open mind map,
+            // so images that are still in use are never removed.
+            const usedRefs = new Set();
+            const hierarchy = typeof currentHierarchy !== 'undefined' ? currentHierarchy : (window.currentHierarchy || null);
+            if (hierarchy) {
+                const collectRefs = (obj) => {
+                    if (!obj || typeof obj !== 'object') return;
+                    for (const key in obj) {
+                        const val = obj[key];
+                        if (typeof val === 'string' && val.startsWith('local:')) {
+                            usedRefs.add(val);
+                        }
+                    }
+                    if (Array.isArray(obj.children)) {
+                        obj.children.forEach(collectRefs);
+                    }
+                };
+                collectRefs(hierarchy);
+            }
+            
             images.sort((a, b) => a.timestamp - b.timestamp);
             const toRemove = Math.ceil(images.length * 0.25);
             
-            for (let i = 0; i < toRemove; i++) {
-                await this._deleteLocalImage('local:' + images[i].id);
+            let removed = 0;
+            for (let i = 0; i < images.length && removed < toRemove; i++) {
+                const ref = 'local:' + images[i].id;
+                if (usedRefs.has(ref)) continue;
+                await this._deleteLocalImage(ref);
+                removed++;
             }
         } catch (e) {
             console.error('Failed to cleanup old images:', e);
@@ -403,7 +427,7 @@ const ImageHandler = {
 
         this._pendingLocalizations[remoteId] = (async () => {
             try {
-                let dataUrl = this.cache[remoteId];
+                let dataUrl = this.cache['remote-' + remoteId];
                 if (!dataUrl || !dataUrl.startsWith('data:')) {
                     dataUrl = await this._downloadImageAsDataUrl(imageUrl);
                 }
@@ -779,12 +803,12 @@ const ImageHandler = {
                     try {
                         const dataUrl = await this._downloadImageAsDataUrl(result.url);
                         if (dataUrl) {
-                            this.cache[result.imageId] = dataUrl;
+                            this.cache['remote-' + result.imageId] = dataUrl;
                         } else {
-                            this.cache[result.imageId] = result.url;
+                            this.cache['remote-' + result.imageId] = result.url;
                         }
                     } catch (e) {
-                        this.cache[result.imageId] = result.url;
+                        this.cache['remote-' + result.imageId] = result.url;
                     }
                 }
                 return `remote:${result.imageId}`;
@@ -801,8 +825,8 @@ const ImageHandler = {
     _loadRemoteImage: function(ref) {
         const cleanId = ref.startsWith('remote:') ? ref.substring(7) : ref;
         
-        if (this.cache[cleanId]) {
-            return this.cache[cleanId];
+        if (this.cache['remote-' + cleanId]) {
+            return this.cache['remote-' + cleanId];
         }
         
         this._loadRemoteImageAsync(cleanId);
@@ -812,8 +836,8 @@ const ImageHandler = {
     _loadRemoteImageAsync: async function(ref, maxRetries = 3, retryDelay = 200) {
         const cleanId = ref.startsWith('remote:') ? ref.substring(7) : ref;
 
-        if (this.cache[cleanId]) {
-            return this.cache[cleanId];
+        if (this.cache['remote-' + cleanId]) {
+            return this.cache['remote-' + cleanId];
         }
 
         if (this._pendingRequests[cleanId]) {
@@ -848,7 +872,7 @@ const ImageHandler = {
     
     _loadRemoteFromAPI: async function(id) {
         try {
-            if (this.cache[id]) return this.cache[id];
+            if (this.cache['remote-' + id]) return this.cache['remote-' + id];
 
             const token = await this._getAuthToken();
             const headers = {};
@@ -876,7 +900,7 @@ const ImageHandler = {
                     reader.readAsDataURL(blob);
                 });
                 if (dataUrl) {
-                    this.cache[id] = dataUrl;
+                    this.cache['remote-' + id] = dataUrl;
                     return dataUrl;
                 }
                 return null;
@@ -890,14 +914,14 @@ const ImageHandler = {
                 try {
                     const dataUrl = await this._downloadImageAsDataUrl(imageUrl);
                     if (dataUrl) {
-                        this.cache[id] = dataUrl;
+                        this.cache['remote-' + id] = dataUrl;
                         return dataUrl;
                     }
                 } catch (downloadError) {
                     console.warn('Could not convert image to data URL, caching URL instead:', downloadError);
                 }
 
-                this.cache[id] = imageUrl;
+                this.cache['remote-' + id] = imageUrl;
                 return imageUrl;
             }
 
@@ -911,7 +935,7 @@ const ImageHandler = {
     _deleteRemoteImage: async function(ref) {
         const cleanId = ref.startsWith('remote:') ? ref.substring(7) : ref;
         
-        delete this.cache[cleanId];
+        delete this.cache['remote-' + cleanId];
         
         try {
             const token = await this._getAuthToken();
@@ -971,16 +995,16 @@ const ImageHandler = {
             const result = await response.json();
             if (result.success && result.data) {
                 const promises = result.data.map(async img => {
-                    if (img.url && !this.cache[img.id]) {
+                    if (img.url && !this.cache['remote-' + img.id]) {
                         try {
                             const dataUrl = await this._downloadImageAsDataUrl(img.url);
                             if (dataUrl) {
-                                this.cache[img.id] = dataUrl;
+                                this.cache['remote-' + img.id] = dataUrl;
                             } else {
-                                this.cache[img.id] = img.url;
+                                this.cache['remote-' + img.id] = img.url;
                             }
                         } catch (e) {
-                            this.cache[img.id] = img.url;
+                            this.cache['remote-' + img.id] = img.url;
                         }
                     }
                 });

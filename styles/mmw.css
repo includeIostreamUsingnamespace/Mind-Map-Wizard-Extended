@@ -1,11 +1,11 @@
 :root {
-  --primary-color: #c667ff;
-  --secondary-color: #9d34d4;
+  --primary-color: #8b2fc9;
+  --secondary-color: #7a1fa8;
   --background-color: #f7fafc;
   --text-color: #1e293b;
   --light-grey: #e8ecef;
   --light-grey-dark: #dbe2ea;
-  --dark-grey: #717b83;
+  --dark-grey: #5f6b77;
 
   --card-background: #ffffff;
   --left-sidebar-width: 300px;
@@ -25,13 +25,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary-color: #59008e;
-    --secondary-color: #7723a4;
+    --primary-color: #a86ae0;
+    --secondary-color: #8d55c9;
     --background-color: #131515;
     --text-color: #CCC7C1;
     --light-grey: #232627;
     --light-grey-dark: #282b2d;
-    --dark-grey: #85919b;
+    --dark-grey: #a0abb3;
 
     --card-background: #181a1b;
 
@@ -65,6 +65,14 @@ body {
   color: var(--text-color);
   position: relative;
   overflow-x: hidden;
+}
+
+.loader-container {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .feedback-button {

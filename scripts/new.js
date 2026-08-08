@@ -5,6 +5,26 @@ const API_KEY_ENCRYPTION_KEY = 'mmw_encryption_key_2024';
 let currentMindmapTopic = '';
 let generationInProgress = false;
 let pendingApiKeyAction = null;
+let currentMindmap = null;
+
+function safeJsonParse(text, fallback) {
+	try {
+		const parsed = JSON.parse(text);
+		return parsed === undefined ? fallback : parsed;
+	} catch (error) {
+		console.warn('Failed to parse JSON (using fallback):', error);
+		return fallback;
+	}
+}
+
+function escapeHtmlAttr(value) {
+	return String(value ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function setElementDisplay(id, display) {
+	const el = document.getElementById(id);
+	if (el) el.style.display = display;
+}
 
 function encryptApiKey(apiKey) {
 	if (!apiKey) return '';
@@ -197,7 +217,7 @@ function showApiKeyPopup(onSavedAction = null, showLoading = false) {
 	closeBtn.addEventListener('click', () => {
 		popup.remove();
 		pendingApiKeyAction = null;
-		document.getElementById('loading-animation').style.display = 'none';
+		setElementDisplay('loading-animation', 'none');
 		showHeader();
 	});
 
@@ -272,7 +292,7 @@ function showApiKeyManagement() {
 
 					<div id="openrouter-settings" style="display: ${selectedProvider === 'openrouter' ? 'block' : 'none'};">
 						<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">OpenRouter API 密钥</label>
-						<input type="password" id="manage-api-key-input" placeholder="输入您的 OpenRouter API 密钥" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${currentApiKey || ''}">
+						<input type="password" id="manage-api-key-input" placeholder="输入您的 OpenRouter API 密钥" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${escapeHtmlAttr(currentApiKey)}">
 						<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.7; margin-bottom: 15px;">
 							获取 API 密钥： <a href="https://openrouter.ai/keys" target="_blank" style="color: var(--primary-color);">openrouter.ai/keys</a>
 						</div>
@@ -280,7 +300,7 @@ function showApiKeyManagement() {
 
 					<div id="ollama-settings" style="display: ${selectedProvider === 'ollama' ? 'block' : 'none'};">
 						<label style="display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-color);">Ollama 服务器地址</label>
-						<input type="text" id="manage-ollama-url-input" placeholder="${DEFAULT_OLLAMA_BASE_URL}" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${currentOllamaUrl}">
+						<input type="text" id="manage-ollama-url-input" placeholder="${DEFAULT_OLLAMA_BASE_URL}" class="popup-input" style="width: 100%; margin-bottom: 12px;" value="${escapeHtmlAttr(currentOllamaUrl)}">
 						<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.7; margin-bottom: 15px; line-height: 1.5;">
 							通过 <a href="https://ollama.com" target="_blank" style="color: var(--primary-color);">Ollama</a> 在本地私密运行模型。使用 <code>OLLAMA_ORIGINS='*' ollama serve</code> 启动服务器以允许浏览器访问。
 						</div>
@@ -452,7 +472,7 @@ function updateAiFeaturesUI() {
 
 	const prompt = document.getElementById('prompt');
 	if (prompt) {
-		prompt.placeholder = isDisabled ? '输入主题（手动绘制思维导图）' : '输入文字或网址...';
+		prompt.placeholder = isDisabled ? '输入主题（点击「示例」查看）' : '输入文字或网址...';
 	}
 }
 
@@ -862,8 +882,8 @@ async function generateMindmap(mindmapTopic, isRegenerate = false) {
 	generationInProgress = true;
 
 	if (!isRegenerate) {
-		document.getElementById('header').style.display = 'none';
-		document.getElementById('mindmap').style.display = 'none';
+		setElementDisplay('header', 'none');
+		setElementDisplay('mindmap', 'none');
 	}
 	const loadingAnim = document.getElementById('loading-animation');
 	if (loadingAnim) loadingAnim.style.display = 'flex';
@@ -874,7 +894,7 @@ async function generateMindmap(mindmapTopic, isRegenerate = false) {
 	}
 
 	currentMindmapTitle = mindmapTopic;
-	document.getElementById('mindmap').style.display = 'block';
+	setElementDisplay('mindmap', 'block');
 
 	try {
 		let apiKey = getStoredApiKey();
@@ -958,7 +978,7 @@ Structure your response exactly like this:
 			const errorData = await response.json().catch(() => ({}));
 
 			if (response.status === 401) {
-				throw new Error('OpenRouter API 密钥无效。请检查您的 API 密钥后重试。');
+				throw new Error('API_KEY_INVALID: OpenRouter API 密钥无效。请检查您的 API 密钥后重试。');
 			} else if (response.status === 429) {
 				throw new Error('请求过于频繁，请稍后再试。');
 			} else if (response.status === 402) {
@@ -1040,14 +1060,12 @@ Structure your response exactly like this:
 				...(contextUrls.length ? { contextUrls } : {}),
 				playPopAnimation: true
 			});
-			try {
-				await fetch(
+			fetch(
 				'https://stats.mindmapwizard.com/hit/mmw-os/mind-map-generated', {
 				method: 'GET',
-				});
-			} catch (trackingError) {
+			}).catch((trackingError) => {
 				console.error('Tracking Error:', trackingError);
-			}
+			});
 			let mmjsonStr = '';
 			try {
 				const ed = document.getElementById('json-editor');
@@ -1069,7 +1087,7 @@ Structure your response exactly like this:
 				const urlObj = new URL(window.location);
 				const existingId = urlObj.searchParams.get('id');
 				if (existingId) {
-					const history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+					const history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 					const idx = history.findIndex(it => String(it.id) === String(existingId));
 					if (idx >= 0) {
 						history[idx].mindmap = mmjsonStr;
@@ -1112,7 +1130,7 @@ Structure your response exactly like this:
 		}
 
 		if (loadingAnim) loadingAnim.style.display = 'none';
-		document.getElementById('button-container').style.display = 'flex';
+		setElementDisplay('button-container', 'flex');
 
 		if (isRegenerate) {
 			const regenerateBtn = document.getElementById('regenerate-button');
@@ -1135,8 +1153,8 @@ Structure your response exactly like this:
 			userMessage = '网络错误。请检查您的连接后重试。';
 		} else if (error.message.includes('security')) {
 			userMessage = '内容验证失败。请尝试不同的主题。';
-		} else if (error.message.includes('API key')) {
-			userMessage = error.message;
+		} else if (error.message.startsWith('API_KEY_INVALID') || error.message.includes('API 密钥无效')) {
+			userMessage = error.message.replace(/^API_KEY_INVALID:\s*/, '');
 		}
 
 		if (shouldShowError) {
@@ -1276,19 +1294,22 @@ Context: ${branchContext}`;
 				if (loader) loader.classList.remove('active');
 				window.expandNodeChildren(nodeId);
 
-				try {
-					await fetch(
+				fetch(
 					'https://stats.mindmapwizard.com/hit/mmw-os/mind-map-expanded', {
 					method: 'GET',
-					});
-				} catch (trackingError) {
+				}).catch((trackingError) => {
 					console.error('Tracking Error:', trackingError);
-				}
+				});
 
 				if (oldChildren) {
 					const existingRevertContainer = document.getElementById('revert-changes-container');
 
 					if (existingRevertContainer) {
+						if (existingRevertContainer._revertTimerId) {
+							clearInterval(existingRevertContainer._revertTimerId);
+							existingRevertContainer._revertTimerId = null;
+						}
+
 						const revertContainer = existingRevertContainer.cloneNode(true);
 						existingRevertContainer.parentNode.replaceChild(revertContainer, existingRevertContainer);
 
@@ -1303,12 +1324,17 @@ Context: ${branchContext}`;
 							if (revertTimer) revertTimer.textContent = timeLeft;
 							if (timeLeft <= 0) {
 								clearInterval(timerInterval);
+								revertContainer._revertTimerId = null;
 								revertContainer.classList.remove('active');
 							}
 						}, 1000);
+						revertContainer._revertTimerId = timerInterval;
 
 						revertContainer.onclick = () => {
-							clearInterval(timerInterval);
+							if (revertContainer._revertTimerId) {
+								clearInterval(revertContainer._revertTimerId);
+								revertContainer._revertTimerId = null;
+							}
 							revertContainer.classList.remove('active');
 							if (window.restoreNodeChildren) {
 								window.restoreNodeChildren(nodeId, oldChildren);
@@ -1359,7 +1385,7 @@ function initiateGenerationProcess(providedTopic) {
 
 	currentMindmapTopic = mindmapTopic;
 
-	document.getElementById('header').style.display = 'none';
+	setElementDisplay('header', 'none');
 	generateMindmap(mindmapTopic, false);
 }
 
@@ -1674,7 +1700,7 @@ function updateSignUpButton() {
 			}
 
 			let history = [];
-			try { history = JSON.parse(localStorage.getItem('mindmap-history') || '[]'); } catch { history = []; }
+			try { history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []); } catch { history = []; }
 
 			const idx = history.findIndex(it => String(it.id) === String(id));
 			if (idx >= 0) {
@@ -1779,13 +1805,10 @@ function updateSignUpButton() {
 			.then(() => __mmwLoadScript('/scripts/mm-rendering/interaction.js'))
 			.then(() => {
 				try {
-					if (!window.__mmwEngineBooted) {
-						window.__mmwEngineBooted = true;
-						if (document.readyState !== 'loading') {
-							document.dispatchEvent(new Event('DOMContentLoaded'));
-						}
-					}
-				} catch { }
+				if (!window.__mmwEngineBooted) {
+					window.__mmwEngineBooted = true;
+				}
+			} catch { }
 
 				try {
 					const ed = document.getElementById('json-editor');
@@ -2233,7 +2256,7 @@ async function handlePdfUpload(file) {
 			const errorText = await response.text();
 			if (response.status === 400 && errorText.includes('File is too large')) throw new Error('FILE_TOO_LARGE');
 			if (response.status === 503 && errorText.includes('Cloudflare')) throw new Error('FILE_TOO_LARGE');
-			throw new Error(`OpenRouter API error: ${response.status} ${errorText}`);
+			throw new Error(`OpenRouter API error: ${response.status}`);
 		}
 
 		const data = await response.json();
@@ -2265,14 +2288,12 @@ async function handlePdfUpload(file) {
 		if (!finalMarkdown) throw new Error('Generated markdown content is empty or invalid after processing.');
 		hideHeader();
 		await window.renderMindmap(finalMarkdown, { playPopAnimation: true });
-		try {
-			await fetch(
+		fetch(
 			'https://stats.mindmapwizard.com/hit/mmw-os/mind-map-generated-pdf', {
 			method: 'GET',
-			});
-		} catch (trackingError) {
+		}).catch((trackingError) => {
 			console.error('Tracking Error:', trackingError);
-		}
+		});
 		let mmjsonStr = '';
 		try {
 			const ed = document.getElementById('json-editor');
@@ -2466,24 +2487,46 @@ function initializeEditMode() {
 }
 
 function saveMindmapToHistory(mindmapJsonStr, idOverride = null) {
-	const history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+	const history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 	const timestamp = new Date().toISOString();
 	const newId = idOverride || Date.now();
 
-	history.push({
-		mindmap: mindmapJsonStr,
-		timestamp,
-		id: newId
-	});
+	// Deduplicate: if the latest entry has the same core node structure (e.g. the
+	// untouched "示例" template saved repeatedly), update it in place instead of
+	// accumulating duplicate history entries. Content is compared structurally so
+	// that formatting and mm-settings differences (added by auto-save) are ignored.
+	function sameMindmapContent(a, b) {
+		try {
+			const pa = JSON.parse(a);
+			const pb = JSON.parse(b);
+			const na = pa['mm-node'] || pa.mmNode || pa;
+			const nb = pb['mm-node'] || pb.mmNode || pb;
+			return JSON.stringify(na) === JSON.stringify(nb);
+		} catch (e) {
+			return a === b;
+		}
+	}
 
-	if (history.length > 100) {
-		history.shift();
+	const last = history[history.length - 1];
+	if (last && sameMindmapContent(last.mindmap, mindmapJsonStr)) {
+		last.timestamp = timestamp;
+		last.id = newId;
+	} else {
+		history.push({
+			mindmap: mindmapJsonStr,
+			timestamp,
+			id: newId
+		});
+
+		if (history.length > 100) {
+			history.shift();
+		}
 	}
 
 	localStorage.setItem('mindmap-history', JSON.stringify(history));
 
 	if (document.getElementById('searchMindmapsPopupOverlay')?.classList.contains('active')) {
-		allMindmapHistory = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+		allMindmapHistory = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 		allMindmapHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 		filterAndDisplayMindmapsInPopup(document.getElementById('popupMindmapSearchInput')?.value || '');
 	}
@@ -2914,7 +2957,7 @@ function updateMindmapFromEdit() {
 			const url = new URL(location.href);
 			const id = url.searchParams.get('id');
 			if (id) {
-				const history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+				const history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 				const idx = history.findIndex((item) => String(item.id) === String(id));
 				if (idx >= 0) {
 					history[idx].mindmap = updatedStr;
@@ -3102,7 +3145,7 @@ function loadMindMapById(id) {
 		closeLeftSidebar();
 	}
 
-	const history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+	const history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 	const stringId = String(id);
 
 	let mindMap = history.find((item) => String(item.id) === stringId);
@@ -3206,7 +3249,7 @@ function updateUrlWithId(id) {
 function showErrorMessage(message) {
 	console.error(message);
 	const app = document.getElementById('app');
-	app.style.display = 'none';
+	if (app) app.style.display = 'none';
 
 	const mindmapContainer = document.getElementById('mindmap');
 	if (mindmapContainer) {
@@ -3224,8 +3267,8 @@ function showErrorMessage(message) {
 
 
 function loadMindmapsLeftSidebar() {
-	const history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
-	const playground = JSON.parse(localStorage.getItem('mindmap-playground') || 'null');
+	const history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
+	const playground = safeJsonParse(localStorage.getItem('mindmap-playground') || 'null', null);
 	const list = document.getElementById('leftSidebarMindmapList');
 
 	if (!list) {
@@ -3339,12 +3382,12 @@ function openMindmapLeftSidebar(id) {
 }
 
 function getMindmapFromStorage(id) {
-	let history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+	let history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 	let mindmap = history.find((item) => String(item.id) === String(id));
 	let source = 'history';
 
 	if (!mindmap) {
-		const playground = JSON.parse(localStorage.getItem('mindmap-playground') || 'null');
+		const playground = safeJsonParse(localStorage.getItem('mindmap-playground') || 'null', null);
 		if (playground && String(playground.id) === String(id)) {
 			mindmap = playground;
 			source = 'playground';
@@ -3364,7 +3407,7 @@ function renameMindmap(id) {
 	const newNameCallback = (id, newName) => {
 		updateMindmapInStorage(id, { topic: newName });
 		loadMindmapsLeftSidebar();
-		if (String(currentMindmap.id) === String(id)) {
+		if (currentMindmap && String(currentMindmap.id) === String(id)) {
 			currentMindmapTitle = newName;
 			document.title = `${currentMindmapTitle} - 思维导图向导`;
 		}
@@ -3383,20 +3426,20 @@ function renameMindmap(id) {
 
 function deleteMindmap(id) {
 	const deleteCallback = (idToDelete) => {
-		let history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+		let history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 		const updatedHistory = history.filter((item) => String(item.id) !== String(idToDelete));
 
 		if (updatedHistory.length < history.length) {
 			localStorage.setItem('mindmap-history', JSON.stringify(updatedHistory));
 		} else {
-			const playground = JSON.parse(localStorage.getItem('mindmap-playground') || 'null');
+			const playground = safeJsonParse(localStorage.getItem('mindmap-playground') || 'null', null);
 			if (playground && String(playground.id) === String(idToDelete)) {
 				localStorage.removeItem('mindmap-playground');
 			}
 		}
 		loadMindmapsLeftSidebar();
 
-		if (String(currentMindmap.id) === String(idToDelete)) {
+		if (currentMindmap && String(currentMindmap.id) === String(idToDelete)) {
 			currentMarkdown = '';
 			currentMindmapTitle = '';
 			showHeader();
@@ -3418,14 +3461,14 @@ function deleteMindmap(id) {
 }
 
 function updateMindmapInStorage(id, updates) {
-	let history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+	let history = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 	let mindmapInHistory = history.find(item => String(item.id) === String(id));
 
 	if (mindmapInHistory) {
 		Object.assign(mindmapInHistory, updates);
 		localStorage.setItem('mindmap-history', JSON.stringify(history));
 	} else {
-		let playground = JSON.parse(localStorage.getItem('mindmap-playground') || 'null');
+		let playground = safeJsonParse(localStorage.getItem('mindmap-playground') || 'null', null);
 		if (playground && String(playground.id) === String(id)) {
 			Object.assign(playground, updates);
 			localStorage.setItem('mindmap-playground', JSON.stringify(playground));
@@ -3683,7 +3726,7 @@ async function shareMindmap() {
 
 	try {
 		updateCurrentMindmap();
-		const topic = currentMindmap.topic || currentMindmapTitle || '思维导图';
+		const topic = (currentMindmap && currentMindmap.topic) || currentMindmapTitle || '思维导图';
 		let mmjsonStr = '';
 		try {
 			if (typeof window.currentMarkdown === 'string' && window.currentMarkdown.trim().startsWith('{')) {
@@ -3838,7 +3881,7 @@ function openSearchMindmapsPopup() {
 		return;
 	}
 
-	allMindmapHistory = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
+	allMindmapHistory = safeJsonParse(localStorage.getItem('mindmap-history') || '[]', []);
 	allMindmapHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
 	searchInput.value = '';
@@ -3880,7 +3923,7 @@ function getSearchableMarkdown(item) {
 			console.warn('Failed to convert JSON to Markdown for search', e);
 		}
 	}
-	return content;
+	return typeof content === 'string' ? content : String(content || '');
 }
 
 function getContentSnippet(markdown, term) {
@@ -4014,35 +4057,6 @@ function filterAndDisplayMindmapsInPopup(searchTerm) {
 function openMindmapFromSearchPopup(id) {
 	closeSearchMindmapsPopup();
 	openMindmapLeftSidebar(id);
-}
-
-function saveMindmapToHistory(mindmapJsonStr, idOverride = null) {
-	const history = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
-	const timestamp = new Date().toISOString();
-	const newId = idOverride || Date.now();
-
-	history.push({
-		mindmap: mindmapJsonStr,
-		timestamp,
-		id: newId
-	});
-
-	if (history.length > 100) {
-		history.shift();
-	}
-
-	localStorage.setItem('mindmap-history', JSON.stringify(history));
-
-	if (document.getElementById('searchMindmapsPopupOverlay')?.classList.contains('active')) {
-		allMindmapHistory = JSON.parse(localStorage.getItem('mindmap-history') || '[]');
-		allMindmapHistory.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-		filterAndDisplayMindmapsInPopup(document.getElementById('popupMindmapSearchInput')?.value || '');
-	}
-	if (typeof loadMindmapsLeftSidebar === 'function') {
-		loadMindmapsLeftSidebar();
-	}
-
-	return newId;
 }
 
 window.openSearchMindmapsPopup = openSearchMindmapsPopup;
@@ -4268,7 +4282,7 @@ function printMindmap() {
 			<!DOCTYPE html>
 			<html>
 			<head>
-				<title>${currentMindmapTitle || '思维导图'} - Print</title>
+				<title>${escapeHtmlAttr(currentMindmapTitle || '思维导图')} - Print</title>
 				<style>
 					@media print {
 						@page {
@@ -5302,7 +5316,7 @@ async function createLocalMindMapFromMarkdown(markdownInput) {
 		const app = document.getElementById('app');
 		if (app) app.style.display = 'none';
 
-		document.getElementById('loading-animation').style.display = 'flex';
+		setElementDisplay('loading-animation', 'flex');
 
 		const mmjson = window.markdownToMmJson(markdownInput);
 		const mmjsonStr = JSON.stringify(mmjson, null, 2);
@@ -5331,9 +5345,9 @@ async function createLocalMindMapFromMarkdown(markdownInput) {
 
 		await renderMindmap(markdownInput, { playPopAnimation: true });
 
-		document.getElementById('loading-animation').style.display = 'none';
-		document.getElementById('button-container').style.display = 'flex';
-		document.getElementById('mindmap').style.display = 'block';
+		setElementDisplay('loading-animation', 'none');
+		setElementDisplay('button-container', 'flex');
+		setElementDisplay('mindmap', 'block');
 
 		if (typeof loadMindmapsLeftSidebar === 'function') {
 			await loadMindmapsLeftSidebar(true);
@@ -5341,7 +5355,7 @@ async function createLocalMindMapFromMarkdown(markdownInput) {
 
 	} catch (error) {
 		console.error('Failed to create local mind map:', error);
-		document.getElementById('loading-animation').style.display = 'none';
+		setElementDisplay('loading-animation', 'none');
 		showErrorPopup(error.message, "错误");
 		throw error;
 	}

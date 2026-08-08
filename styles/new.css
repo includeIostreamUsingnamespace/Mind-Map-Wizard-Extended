@@ -620,6 +620,8 @@
   z-index: 3200;
   width: 380px;
   max-width: 90vw;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
   transform: translateY(0);
   animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   display: none;

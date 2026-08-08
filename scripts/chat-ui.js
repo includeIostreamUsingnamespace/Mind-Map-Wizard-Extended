@@ -4,6 +4,7 @@ class ChatManager {
         this.isLoading = false;
         this.chatHistory = [];
         this.apiEndpoint = '/chat/edit';
+        this.pendingMessage = null;
 
         this.drawer = document.getElementById('chat-drawer');
         this.messagesContainer = document.getElementById('chat-messages');
@@ -133,8 +134,10 @@ class ChatManager {
         }
     }
 
-    async sendMessage() {
-        const text = this.input.value.trim();
+    async sendMessage(textArg) {
+        const text = (textArg !== undefined && textArg !== null)
+            ? String(textArg).trim()
+            : this.input.value.trim();
         if (!text || this.isLoading) return;
 
         if (this.suggestionsContainer) {
@@ -227,7 +230,14 @@ class ChatManager {
 
         } catch (error) {
             console.error("Chat Error:", error);
-            this.addSystemMessage(`Error: ${error.message}`, true);
+            const msg = String(error && error.message ? error.message : error);
+            if (/Failed to fetch|NetworkError|ERR_CONNECTION_REFUSED|Network request failed/i.test(msg)) {
+                this.addSystemMessage("无法连接到 AI 服务，请检查网络连接或 AI 服务地址设置。", true);
+            } else if (/aborted|timeout/i.test(msg)) {
+                this.addSystemMessage("AI 请求超时，请重试。", true);
+            } else {
+                this.addSystemMessage(`Error: ${msg}`, true);
+            }
         } finally {
             this.setLoading(false);
         }
@@ -325,22 +335,27 @@ class ChatManager {
 
     addBotMessage(text) {
         if (!text) return;
+        if (this.typeInterval) {
+            clearInterval(this.typeInterval);
+            this.typeInterval = null;
+        }
         const div = document.createElement('div');
         div.className = 'chat-message bot';
         this.messagesContainer.appendChild(div);
 
         let i = 0;
         const speed = 10;
-        const typingInterval = setInterval(() => {
+        this.typeInterval = setInterval(() => {
             if (i < text.length) {
                 div.textContent += text.charAt(i);
                 i++;
                 this.scrollToBottom();
             } else {
-                clearInterval(typingInterval);
+                clearInterval(this.typeInterval);
+                this.typeInterval = null;
             }
         }, speed);
-        
+
         this.scrollToBottom();
     }
 
@@ -370,7 +385,12 @@ class ChatManager {
     }
 
     scrollToBottom() {
-        this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        if (this._scrollPending) return;
+        this._scrollPending = true;
+        requestAnimationFrame(() => {
+            this._scrollPending = false;
+            this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+        });
     }
 }
 

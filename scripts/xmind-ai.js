@@ -104,8 +104,28 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     text = text.replace(/^```\s*/, '').replace(/```$/, '').trim();
     try { return JSON.parse(text); } catch (e) {
       if (['summarize','polish','ask'].includes(mode)) return text;
-      const match = text.match(/\[.*\]/s) || text.match(/\{.*\}/s);
-      if (match) { try { return JSON.parse(match[0]); } catch (e2) {} }
+      const starts = ['[', '{'].map(ch => text.indexOf(ch)).filter(i => i !== -1);
+      const start = Math.min(...starts);
+      if (starts.length > 0) {
+        const open = text[start];
+        const close = open === '[' ? ']' : '}';
+        let depth = 0, inString = false, escaped = false;
+        for (let i = start; i < text.length; i++) {
+          const ch = text[i];
+          if (inString) {
+            if (escaped) escaped = false;
+            else if (ch === '\\') escaped = true;
+            else if (ch === '"') inString = false;
+            continue;
+          }
+          if (ch === '"') { inString = true; }
+          else if (ch === open) { depth++; }
+          else if (ch === close && --depth === 0) {
+            try { return JSON.parse(text.slice(start, i + 1)); } catch (e2) {}
+            break;
+          }
+        }
+      }
       return text.split('\n').filter(l => l.trim()).map(l => l.replace(/^[-•*\d.\s]+/, '').trim()).filter(Boolean);
     }
   }
@@ -135,20 +155,47 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     return clean;
   }
 
+  // Convert the runtime hierarchy (root wrapper + {text, children}) into the
+  // {"mm-node": ...} format expected by the main renderer. Used as a local
+  // fallback so we never persist a raw runtime structure to json-editor.
+  function toEditorJson(data) {
+    function convert(node) {
+      const obj = { content: node.text || '', children: [] };
+      if (Array.isArray(node.children)) obj.children = node.children.map(convert);
+      return obj;
+    }
+    if (data && Array.isArray(data.children)) {
+      const rootNode = data.children.length > 0 ? data.children[0] : { text: '', children: [] };
+      return JSON.stringify({ "mm-node": convert(rootNode) }, null, 2);
+    }
+    return JSON.stringify(stripParentRefs(data), null, 2);
+  }
+
   function setData(data) {
     // Update currentHierarchy (original runtime data)
     if (typeof currentHierarchy !== 'undefined') {
       currentHierarchy = data;
     }
-    // Update json-editor (strip circular parent refs before stringify)
+    // Update json-editor: convert runtime hierarchy to the {"mm-node": ...} format
+    // expected by the main renderer (updateMindMap/generateSVG)
     const ed = document.getElementById('json-editor');
     if (ed) {
       try {
-        ed.value = JSON.stringify(stripParentRefs(data), null, 2);
+        let jsonStr;
+        if (data && Array.isArray(data.children) && typeof hierarchyToJson === 'function') {
+          jsonStr = hierarchyToJson(data);
+        } else {
+          jsonStr = toEditorJson(data);
+        }
+        ed.value = jsonStr;
       } catch (e) {
         console.error('[XMind AI] JSON stringify error:', e);
-        // fallback: try without formatting
-        ed.value = JSON.stringify(stripParentRefs(data));
+        // fallback: always persist in {"mm-node": ...} format
+        try {
+          ed.value = toEditorJson(data);
+        } catch (e2) {
+          ed.value = JSON.stringify(stripParentRefs(data));
+        }
       }
     }
     // Trigger update
@@ -178,7 +225,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiBrainstorm(nodeId) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
-    const topic = node.content || node.text || 'Topic';
+    const topic = escapePrompt(node.content || node.text || 'Topic');
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 1000));
@@ -193,7 +240,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiResearch(nodeId) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
-    const topic = node.content || node.text || 'Topic';
+    const topic = escapePrompt(node.content || node.text || 'Topic');
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 1200));
@@ -212,7 +259,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiExpand(nodeId) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
-    const topic = node.content || node.text || 'Topic';
+    const topic = escapePrompt(node.content || node.text || 'Topic');
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 1000));
@@ -231,8 +278,8 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiSummarize(nodeId) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
-    const topic = node.content || node.text || 'Topic';
-    const children = (node.children || []).map(c => c.content || c.text || '');
+    const topic = escapePrompt(node.content || node.text || 'Topic');
+    const children = (node.children || []).map(c => escapePrompt(c.content || c.text || ''));
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 800));
@@ -244,7 +291,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiExplain(nodeId) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
-    const topic = node.content || node.text || 'Topic';
+    const topic = escapePrompt(node.content || node.text || 'Topic');
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 900));
@@ -265,7 +312,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 600));
       result = MOCK_RESPONSES.polish(text);
-    } else { const res = await callAI(PROMPTS.polish(text)); result = parseResponse(res.content, 'polish'); }
+    } else { const res = await callAI(PROMPTS.polish(escapePrompt(text))); result = parseResponse(res.content, 'polish'); }
     node.content = String(result); if (node.text !== undefined) node.text = String(result);
     setData(data); return { success: true, original: text, polished: String(result) };
   }
@@ -273,8 +320,8 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiRestructure(nodeId) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
-    const topic = node.content || node.text || 'Topic';
-    const children = (node.children || []).map(c => c.content || c.text || '');
+    const topic = escapePrompt(node.content || node.text || 'Topic');
+    const children = (node.children || []).map(c => escapePrompt(c.content || c.text || ''));
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 1100));
@@ -290,8 +337,8 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
 
   async function aiAsk(question, nodeId) {
     const data = getData();
-    const node = nodeId ? findNode(data, nodeId) : null;
-    const topic = node ? (node.content || node.text || 'Topic') : 'General';
+    const node = nodeId && data ? findNode(data, nodeId) : null;
+    const topic = node ? escapePrompt(node.content || node.text || 'Topic') : 'General';
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 1000));
@@ -309,8 +356,8 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
   async function aiInsertCore(nodeId, promptText, mockResult, parseType, mockDelay, preFetchedNode) {
     const data = getData();
     if (!data) throw new Error('No data');
-    const node = preFetchedNode || findNode(data, nodeId);
-    if (!node) throw new Error('Node not found');
+    const node = preFetchedNode || (data ? findNode(data, nodeId) : null);
+    if (!node) return { success: false, error: 'Node not found' };
 
     let result;
     if (window.XMIND_AI_CONFIG.provider === 'mock') {

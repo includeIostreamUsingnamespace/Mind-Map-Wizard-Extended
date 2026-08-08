@@ -76,16 +76,16 @@ function execAddNode(root, parentId, nodeData) {
 
   if (!parent.children) parent.children = [];
 
+  const { id, ...rest } = nodeData || {};
   const newNode = {
+    ...rest,
     id: generateId(),
-    content: nodeData.content || "New Node",
-    ...nodeData
+    content: rest.content || "New Node",
+    children: []
   };
 
   if (nodeData.children && Array.isArray(nodeData.children)) {
     newNode.children = processChildrenWithIds(nodeData.children);
-  } else {
-    newNode.children = [];
   }
 
   parent.children.push(newNode);
@@ -194,9 +194,19 @@ function aiNeedsApiKey() {
   return window.aiRequiresApiKey ? window.aiRequiresApiKey() : true;
 }
 
+async function fetchWithTimeout(url, options = {}, timeoutMs = 60000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function performAiSearch(query, apiKey) {
   try {
-    const response = await fetch(aiChatUrl(), {
+    const response = await fetchWithTimeout(aiChatUrl(), {
       method: 'POST',
       headers: aiHeaders(apiKey),
       body: aiBody({
@@ -401,7 +411,7 @@ User Request: "${input}"
 
     const retryResult = await withAiRetry(async () => {
       const fetchAi = async (messages) => {
-        const response = await fetch(aiChatUrl(), {
+        const response = await fetchWithTimeout(aiChatUrl(), {
           method: 'POST',
           headers: aiHeaders(apiKey),
           body: aiBody({
@@ -439,7 +449,7 @@ User Request: "${input}"
       try {
           parsedResponse = JSON.parse(aiContent);
       } catch (e) {
-           const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+           const jsonMatch = aiContent.match(/\{(?:[^{}]|\{[^{}]*\})*\}/);
            if (jsonMatch) parsedResponse = JSON.parse(jsonMatch[0]);
            else throw new Error("Invalid JSON from AI");
       }
@@ -480,7 +490,7 @@ Original User Request: "${input}"
           try {
               parsedResponse = JSON.parse(aiContent);
           } catch (e) {
-               const jsonMatch = aiContent.match(/\{[\s\S]*\}/);
+               const jsonMatch = aiContent.match(/\{(?:[^{}]|\{[^{}]*\})*\}/);
                if (jsonMatch) parsedResponse = JSON.parse(jsonMatch[0]);
                else throw new Error("Invalid JSON from AI after search");
           }

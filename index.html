@@ -159,15 +159,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
                         <defs>
                             <style>
-                                .loader-container {
-                                    width: 100px;
-                                    height: 100px;
-                                    display: flex;
-                                    justify-content: center;
-                                    align-items: center;
-                                }
-        
-                                .wand {
+                                svg .wand {
                                     fill: var(--text-color);
                                     stroke: var(--text-color);
                                     stroke-width: 4px;
@@ -178,7 +170,7 @@
                                 }
         
                                 /* NEW RULE ADDED HERE TO MOVE STARS */
-                                .stars {
+                                svg .stars {
                                     transform: translate(15px, -15px);
                                 }
         
@@ -211,7 +203,7 @@
                                     }
                                 }
         
-                                .star {
+                                svg .star {
                                     transform-box: fill-box;
                                     transform-origin: center;
                                     animation:
@@ -219,11 +211,11 @@
                                         star-react 2.5s ease-out infinite;
                                 }
         
-                                .star-2 {
+                                svg .star-2 {
                                     animation-delay: 0.1s;
                                 }
         
-                                .star-3 {
+                                svg .star-3 {
                                     animation-delay: 0.05s;
                                 }
         
@@ -366,7 +358,7 @@
                                 <path d="m15 5 4 4" />
                             </g>
                         </svg>
-                        手动绘制
+                        示例
                     </a>
                 </div>
             </div>
@@ -750,7 +742,10 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--text-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-settings2-icon lucide-settings-2"><path d="M14 17H5"/><path d="M19 7h-9"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
     </div>
     <div class="info-menu">
-        <a class="hotkeys-button" style="display: none;">快捷键</a>
+        <a class="hotkeys-button">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+        快捷键
+        </a>
         <a href="#" onclick="showApiKeyManagement(); return false;" class="api-key-manage-button">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 8px; flex-shrink: 0;position: relative;">
             <path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/>
@@ -758,8 +753,8 @@
         API 密钥
         </a>
         <a href="#" onclick="showLicensePopup(); return false;" class="license-button">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-scale-icon lucide-scale" style="margin-right: 8px; flex-shrink: 0;"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
-        许可证
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-info-icon lucide-info" style="margin-right: 8px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        关于
         <a href="#" class="disable-ai-button" id="disable-ai-button">
         <label class="toggle-switch" style="margin-right: 10px;">
             <input type="checkbox" id="disable-ai-toggle" aria-label="AI features">
@@ -782,7 +777,7 @@
 <div id="licensePopup" class="license-popup">
     <div class="license-popup-content">
         <div class="popup-header">
-            <h2>许可证</h2>
+            <h2>关于</h2>
             <button class="close-button" id="closeLicensePopup">
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -798,6 +793,8 @@
         </div>
         <div class="license-content">
 
+            <p><em>Mind Map Wizard by Linus Schärli</em></p>
+            <p><strong>扩展版</strong> — 在保留原版功能的基础上，通过 AI 功能进行了扩展。</p>
             <p><em>作者 Linus Schärli — 采用 CC BY‑NC 4.0 许可</em></p>
             <p>本作品采用 <strong>知识共享署名-非商业性使用 4.0 国际许可协议</strong> 进行许可。</p>
             
@@ -813,6 +810,7 @@
                 <li><strong>非商业性使用</strong> — 您不得将本作品用于商业目的。</li>
             </ul>
             <p class="license-footer">如需商业使用，请通过 <a href="mailto:contact@mindmapwizard.com">contact@mindmapwizard.com</a> 联系我们。我们欢迎合作与伙伴关系的机会。</p>
+            <p class="license-footer">项目主页：<a href="https://github.com/includeIostreamUsingnamespace/Mind-Map-Wizard-Extended" target="_blank" rel="noopener noreferrer">github.com/includeIostreamUsingnamespace/Mind-Map-Wizard-Extended</a></p>
         </div>
     </div>
 </div>
@@ -916,6 +914,36 @@
         <h3>键盘快捷键</h3>
 
         <div class="shortcut-item">
+            <span class="key">Tab</span>
+            <span class="shortcut-description">为选中节点添加子节点</span>
+        </div>
+
+        <div class="shortcut-item">
+            <span class="key">Enter</span>
+            <span class="shortcut-description">为选中节点添加同级节点</span>
+        </div>
+
+        <div class="shortcut-item">
+            <span class="key">Del</span>
+            <span class="shortcut-description">删除选中节点</span>
+        </div>
+
+        <div class="shortcut-item">
+            <span class="key">Space</span>
+            <span class="shortcut-description">展开 / 折叠选中节点</span>
+        </div>
+
+        <div class="shortcut-item">
+            <span class="key">Ctrl+Z</span>
+            <span class="shortcut-description">撤销上一步操作</span>
+        </div>
+
+        <div class="shortcut-item">
+            <span class="key">Ctrl+Y</span>
+            <span class="shortcut-description">重做上一步操作</span>
+        </div>
+
+        <div class="shortcut-item">
             <span class="key">K</span>
             <span class="shortcut-description">搜索所有已生成的思维导图</span>
         </div>
@@ -941,19 +969,6 @@
         </div>
     </div>
     <div id="snackbar" style="display: none;"></div>
-
-    <!-- License Footer -->
-    <div id="license-footer" style="position:fixed;bottom:0;left:0;right:0;padding:8px 16px;background:rgba(255,255,255,0.95);border-top:1px solid #e8ecef;font-size:11px;color:#717b83;text-align:center;z-index:999;font-family:var(--font-family, 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);backdrop-filter:blur(4px);">
-        <span>原版： <a href="https://github.com/linus-sch/Mind-Map-Wizard" target="_blank" style="color:#c667ff;text-decoration:none;font-weight:600;">Mind Map Wizard</a> by Linus Schärli</span>
-        <span style="margin:0 8px;">·</span>
-        <span style="color:#c667ff;font-weight:600;">扩展版</span>
-        <span style="margin:0 8px;">·</span>
-        <span>通过 AI 功能扩展</span>
-        <span style="margin:0 8px;">·</span>
-        <span>采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank" style="color:#c667ff;text-decoration:none;font-weight:600;">CC BY-NC 4.0</a> 许可</span>
-        <span style="margin:0 8px;">·</span>
-        <span>商业使用请联系 <a href="mailto:contact@mindmapwizard.com" style="color:#c667ff;text-decoration:none;font-weight:600;">contact@mindmapwizard.com</a></span>
-    </div>
 </body>
 
 </html>

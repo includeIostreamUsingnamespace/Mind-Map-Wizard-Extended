@@ -1,4 +1,5 @@
 const activeNotesGenerations = new Set();
+let notesInputTimer = null;
 
 const CITATION_BLOCK_START = '<!--MM_CITATIONS_DATA:';
 const CITATION_BLOCK_END = '-->';
@@ -470,7 +471,11 @@ async function generateNotesWithAI(nodeId, editorDiv) {
     } catch (error) {
         console.error('Notes generation error:', error);
         if (!window.MMW_READONLY) {
-            editorDiv.innerHTML = `<div class="notes-error">Failed to generate notes.<br><span class="retry-btn" onclick="window.openNotesDrawer('${nodeId}')">Retry</span></div>`;
+            editorDiv.innerHTML = `<div class="notes-error">Failed to generate notes.<br><span class="retry-btn">Retry</span></div>`;
+            const retryBtn = editorDiv.querySelector('.retry-btn');
+            if (retryBtn) {
+                retryBtn.addEventListener('click', () => window.openNotesDrawer(nodeId));
+            }
         } else {
             editorDiv.innerHTML = `<div class="notes-error">Failed to generate notes.</div>`;
         }
@@ -487,6 +492,7 @@ function renderResources(citations, shouldAnimate = false) {
 
     citations.forEach(cit => {
         if (!cit || !cit.url) return;
+        if (!isSafeHttpUrl(cit.url)) return;
 
         const isYt = /^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/.exec(cit.url);
         if (isYt) {
@@ -555,7 +561,7 @@ function renderNotes(text, citations = [], showResources = true) {
         const fav = getFaviconUrl(url);
         const imgHtml = fav ? `<img src="${fav}" class="inline-note-favicon" style="width:14px; height:14px; vertical-align: middle; margin-right: 4px; opacity: 0.8;" contenteditable="false">` : '';
         const className = fav ? 'notes-link favicon' : 'notes-link';
-        return `<a href="${url}" target="_blank" class="${className}" style="white-space: nowrap;">${imgHtml}${text}</a>`;
+        return `<a href="${escapeHtml(url)}" target="_blank" class="${className}" style="white-space: nowrap;">${imgHtml}${text}</a>`;
     });
 
     processed = processed.replace(/\[([^\]<]+)\](?!\()/g, (match, content) => {
@@ -568,10 +574,12 @@ function renderNotes(text, citations = [], showResources = true) {
                 );
 
                 if (matched && matched.url) {
+                    if (!isSafeHttpUrl(matched.url)) return part;
+
                     const fav = getFaviconUrl(matched.url);
                     const imgHtml = fav ? `<img src="${fav}" class="inline-note-favicon" style="width:14px; height:14px; vertical-align: middle; margin-right: 4px; opacity: 0.8; margin-bottom: 2.5px;" contenteditable="false">` : '';
                     const className = fav ? 'notes-link favicon' : 'notes-link';
-                    return `<a href="${matched.url}" target="_blank" class="${className}">${imgHtml}${part}</a>`;
+                    return `<a href="${escapeHtml(matched.url)}" target="_blank" class="${className}">${imgHtml}${part}</a>`;
                 }
             }
 
@@ -580,12 +588,13 @@ function renderNotes(text, citations = [], showResources = true) {
                     let urlStr = part;
                     if (!urlStr.startsWith('http')) urlStr = 'https://' + urlStr;
                     const urlObj = new URL(urlStr);
+                    if (!isSafeHttpUrl(urlObj.href)) return part;
 
                     const fav = getFaviconUrl(urlObj.href);
                     const imgHtml = fav ? `<img src="${fav}" class="inline-note-favicon" style="width:14px; height:14px; vertical-align: middle; margin-right: 4px; opacity: 0.8; margin-bottom: 2.5px;" contenteditable="false">` : '';
                     const className = fav ? 'notes-link favicon' : 'notes-link';
 
-                    return `<a href="${urlObj.href}" target="_blank" class="${className}">${imgHtml}${part}</a>`;
+                    return `<a href="${escapeHtml(urlObj.href)}" target="_blank" class="${className}">${imgHtml}${part}</a>`;
                 } catch (e) {
                 }
             }
@@ -602,10 +611,10 @@ function renderNotes(text, citations = [], showResources = true) {
 
         const ytMatch = rawUrl.match(/^(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{11})/);
         if (ytMatch && ytMatch[1]) {
-            return `<a href="${rawUrl}" target="_blank" class="notes-link">${rawUrl}</a><div class="yt-embed" contenteditable="false"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen></iframe></div>`;
+            return `<a href="${escapeHtml(rawUrl)}" target="_blank" class="notes-link">${rawUrl}</a><div class="yt-embed" contenteditable="false"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" frameborder="0" allowfullscreen></iframe></div>`;
         }
 
-        return `<a href="${rawUrl}" target="_blank" class="notes-link">${rawUrl}</a>`;
+        return `<a href="${escapeHtml(rawUrl)}" target="_blank" class="notes-link">${rawUrl}</a>`;
     });
 
     if (showResources) {
@@ -743,17 +752,16 @@ function initNotesDrawer() {
             const nodeId = e.target.getAttribute('data-node-id');
             if (activeNotesGenerations.has(nodeId)) return;
             const node = findNodeByIdGlobal(currentHierarchy, nodeId);
+            if (!node) return;
 
-            if (node) {
-                const resourcesBlock = editorDiv.querySelector('.notes-resources');
-                if (resourcesBlock) {
-                    resourcesBlock.remove();
-                }
+            if (notesInputTimer) clearTimeout(notesInputTimer);
+            notesInputTimer = setTimeout(() => {
+                notesInputTimer = null;
 
                 const val = domToMarkdown(e.target);
-                const { start: startOffset, end: endOffset } = getCursorOffset(e.target);
                 const currentCitations = editorDiv.currentCitations || node.citations || [];
 
+                const prevNotes = node.notes;
                 if (!val || val.trim() === '') {
                     delete node.notes;
                     delete node.citations;
@@ -761,6 +769,15 @@ function initNotesDrawer() {
                     node.notes = serializeNodeNotes(val, currentCitations);
                     node.citations = currentCitations;
                 }
+
+                if (node.notes === prevNotes) return;
+
+                const resourcesBlock = editorDiv.querySelector('.notes-resources');
+                if (resourcesBlock) {
+                    resourcesBlock.remove();
+                }
+
+                const { start: startOffset, end: endOffset } = getCursorOffset(e.target);
 
                 e.target.innerHTML = renderNotes(val, currentCitations, false);
 
@@ -776,14 +793,18 @@ function initNotesDrawer() {
                 const json = __mmwComposeJsonWithCurrentSettings(currentHierarchy);
                 const editorEl = (typeof editor !== 'undefined') ? editor : document.getElementById('json-editor');
                 if (editorEl) editorEl.value = json;
-                localStorage.setItem(localStorageKey, json);
+                try {
+                    localStorage.setItem(localStorageKey, json);
+                } catch (lsError) {
+                    console.warn('Failed to save notes to localStorage', lsError);
+                }
                 triggerAutoSave();
                 if (typeof window.updateMindMap === 'function') {
                     window.updateMindMap();
                 } else if (typeof updateMindMap === 'function') {
                     updateMindMap();
                 }
-            }
+            }, 300);
         });
 
         editorDiv.addEventListener('click', (e) => {
@@ -801,6 +822,16 @@ function initNotesDrawer() {
     }
 }
 
+
+function isSafeHttpUrl(url) {
+    if (typeof url !== 'string' || !url) return false;
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
 
 function escapeHtml(text) {
     return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
