@@ -201,8 +201,9 @@ function showApiKeyPopup(onSavedAction = null, showLoading = false) {
 					<input type="password" id="popup-api-key-input" placeholder="输入 API 密钥..." class="popup-input" style="margin-bottom: 16px;">
 					<button id="save-and-generate-btn" class="popup-save-btn">保存并生成思维导图</button>
 				</div>
-				<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.6; text-align: center;">
-					您的 API 密钥仅存储在本地设备上。
+				<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.6; text-align: center; line-height: 1.7;">
+					您的 API 密钥仅存储在本地设备上（浏览器 localStorage）。<br>
+					存储键名：<code style="background: var(--light-grey); color: var(--text-color); border: 1px solid var(--primary-color); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.95em;">openrouter-api-key-encrypted</code>
 				</div>
 			</div>
 		</div>
