@@ -3642,7 +3642,7 @@ async function shareMindmap() {
 		return;
 	}
 
-	const shareButton = document.querySelector('.share-button');
+	const shareButton = document.getElementById('share-btn');
 	if (shareButton) {
 		shareButton.disabled = true;
 		shareButton.style.opacity = '0.5';
