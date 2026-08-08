@@ -1,5 +1,7 @@
 # Mind Map Wizard — Extended Edition
 
+> 本项目基于 [Mind Map Wizard](https://github.com/linus-sch/Mind-Map-Wizard) 原项目进行了功能扩展，新增了多项 AI 驱动的思维导图辅助功能。
+
 > **Original Author:** [Linus Schärli](https://github.com/linus-sch)  
 > **Original Repository:** [linus-sch/Mind-Map-Wizard](https://github.com/linus-sch/Mind-Map-Wizard)  
 > **License:** [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)
