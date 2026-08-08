@@ -22,3 +22,8 @@ build/
 # Env
 .env
 .env.local
+
+# Archives
+*.zip
+*.rar
+*.7z

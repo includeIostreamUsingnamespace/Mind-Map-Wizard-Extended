@@ -1059,3 +1059,28 @@ body *:not(.captcha-container):not(.captcha) {
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
+
+
+/* ---- AI Insert Submenu ---- */
+.context-submenu {
+    position: fixed;
+    background: var(--bg-color, #fff);
+    border: 1px solid var(--border-color, #e8ecef);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    padding: 4px 0;
+    min-width: 160px;
+    z-index: 10001;
+    font-size: 0.9rem;
+}
+.context-submenu .context-menu-button {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background 80ms ease;
+}
+.context-submenu .context-menu-button:hover {
+    background: var(--hover-bg, #f5f7fa);
+}

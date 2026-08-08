@@ -113,7 +113,7 @@ function getAiRequestHeaders(apiKey) {
 	const headers = {
 		'Content-Type': 'application/json',
 		'HTTP-Referer': window.location.origin,
-		'X-Title': 'Mind Map Wizard'
+		// 'X-Title': 'Mind Map Wizard' // Commented out to fix Ollama CORS
 	};
 	if (!isLocalProvider()) {
 		headers['Authorization'] = `Bearer ${apiKey || getStoredApiKey()}`;
@@ -2224,7 +2224,7 @@ async function handlePdfUpload(file) {
 				'Authorization': `Bearer ${apiKey}`,
 				'Content-Type': 'application/json',
 				'HTTP-Referer': window.location.origin,
-				'X-Title': 'Mind Map Wizard'
+				// 'X-Title': 'Mind Map Wizard' // Commented out to fix Ollama CORS
 			},
 			body: JSON.stringify(requestBody)
 		});
@@ -5428,3 +5428,15 @@ document.addEventListener('DOMContentLoaded', () => {
         window.chatManager = new window.ChatManager();
     }
 });
+
+
+// ---- Loading Animation Helpers (for AI functions) ----
+window.showLoadingAnimation = function() {
+    const el = document.getElementById('loading-animation');
+    if (el) el.style.display = 'flex';
+};
+window.hideLoadingAnimation = function() {
+    const el = document.getElementById('loading-animation');
+    if (el) el.style.display = 'none';
+};
+

@@ -122,15 +122,34 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     try { return JSON.parse(ed.value); } catch (e) { return null; }
   }
 
+  function stripParentRefs(obj) {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (Array.isArray(obj)) return obj.map(stripParentRefs);
+    const clean = {};
+    for (const key in obj) {
+      if (key === 'parent') continue;
+      if (obj.hasOwnProperty(key)) {
+        clean[key] = stripParentRefs(obj[key]);
+      }
+    }
+    return clean;
+  }
+
   function setData(data) {
     // Update currentHierarchy (original runtime data)
     if (typeof currentHierarchy !== 'undefined') {
       currentHierarchy = data;
     }
-    // Update json-editor
+    // Update json-editor (strip circular parent refs before stringify)
     const ed = document.getElementById('json-editor');
     if (ed) {
-      ed.value = JSON.stringify(data, null, 2);
+      try {
+        ed.value = JSON.stringify(stripParentRefs(data), null, 2);
+      } catch (e) {
+        console.error('[XMind AI] JSON stringify error:', e);
+        // fallback: try without formatting
+        ed.value = JSON.stringify(stripParentRefs(data));
+      }
     }
     // Trigger update
     if (typeof updateMindMap === 'function') updateMindMap();
@@ -281,9 +300,81 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     return { success: true, answer: String(result) };
   }
 
+  // ---- Security & Utility Helpers ----
+  function escapePrompt(str) {
+    if (str === undefined || str === null) return '';
+    return String(str).replace(/["\\]/g, '\\$&').replace(/[\r\n\t]/g, ' ');
+  }
+
+  async function aiInsertCore(nodeId, promptText, mockResult, parseType, mockDelay, preFetchedNode) {
+    const data = getData();
+    if (!data) throw new Error('No data');
+    const node = preFetchedNode || findNode(data, nodeId);
+    if (!node) throw new Error('Node not found');
+
+    let result;
+    if (window.XMIND_AI_CONFIG.provider === 'mock') {
+      await new Promise(r => setTimeout(r, mockDelay || 1000));
+      result = mockResult;
+    } else {
+      const res = await callAI(promptText);
+      result = parseResponse(res.content, parseType);
+    }
+
+    if (!Array.isArray(result)) result = [String(result)];
+    // 过滤 null/undefined
+    result = result.filter(t => t !== null && t !== undefined);
+    if (!node.children) node.children = [];
+    result.forEach(t => node.children.push({
+      id: genId(),
+      text: String(t).replace(/^["']|["']$/g, ''),
+      children: []
+    }));
+    setData(data);
+    return { success: true, added: result.length };
+  }
+
+  // ---- New Insert Menu AI Functions ----
+  async function aiGenerateIdeasAuto(nodeId) {
+    const data = getData();
+    if (!data) throw new Error('No data');
+    const node = findNode(data, nodeId);
+    const topic = escapePrompt((node || {}).content || (node || {}).text || 'Topic');
+    const prompt = `You are a creative brainstorming assistant. Given the topic "${topic}", generate 5-8 diverse, creative and relevant sub-topics or ideas automatically without user input. Each should be a single concise phrase. Return ONLY a JSON array of strings.`;
+    return aiInsertCore(nodeId, prompt, parseResponse(MOCK_RESPONSES.brainstorm(topic), 'brainstorm'), 'brainstorm', 1000, node);
+  }
+
+  async function aiGenerateIdeasPrompt(nodeId, userPrompt) {
+    const cleanPrompt = escapePrompt(userPrompt).slice(0, 500);
+    const data = getData();
+    if (!data) throw new Error('No data');
+    const node = findNode(data, nodeId);
+    const topic = escapePrompt((node || {}).content || (node || {}).text || 'Topic');
+    const prompt = `You are a creative brainstorming assistant. Given the topic "${topic}" and the user request: "${cleanPrompt}", generate relevant sub-topics or ideas. Each should be a single concise phrase. Return ONLY a JSON array of strings.`;
+    return aiInsertCore(nodeId, prompt, parseResponse(MOCK_RESPONSES.brainstorm(topic + ' ' + cleanPrompt), 'brainstorm'), 'brainstorm', 1000, node);
+  }
+
+  async function aiWorkBreakdown(nodeId) {
+    const data = getData();
+    if (!data) throw new Error('No data');
+    const node = findNode(data, nodeId);
+    const topic = escapePrompt((node || {}).content || (node || {}).text || 'Topic');
+    const prompt = `You are a project management assistant. Break down the task "${topic}" into concrete, actionable sub-tasks or work packages. Each should be a single concise phrase. Return ONLY a JSON array of strings.`;
+    return aiInsertCore(nodeId, prompt, ['需求分析', '方案设计', '开发实现', '测试验证', '部署上线'], 'brainstorm', 1000, node);
+  }
+
+  async function aiGenerateExplanation(nodeId) {
+    const data = getData();
+    if (!data) throw new Error('No data');
+    const node = findNode(data, nodeId);
+    const topic = escapePrompt((node || {}).content || (node || {}).text || 'Topic');
+    const prompt = `Explain the concept "${topic}" in clear, simple terms suitable for a beginner. Break it down into 3-5 key points. Return ONLY a JSON array of strings.`;
+    return aiInsertCore(nodeId, prompt, parseResponse(MOCK_RESPONSES.explain(topic), 'explain'), 'explain', 900, node);
+  }
+
   window.XMindAI = {
     config: window.XMIND_AI_CONFIG,
-    actions: { brainstorm: aiBrainstorm, research: aiResearch, expand: aiExpand, summarize: aiSummarize, explain: aiExplain, polish: aiPolish, restructure: aiRestructure, ask: aiAsk },
+    actions: { brainstorm: aiBrainstorm, research: aiResearch, expand: aiExpand, summarize: aiSummarize, explain: aiExplain, polish: aiPolish, restructure: aiRestructure, ask: aiAsk, generateIdeasAuto: aiGenerateIdeasAuto, generateIdeasPrompt: aiGenerateIdeasPrompt, workBreakdown: aiWorkBreakdown, generateExplanation: aiGenerateExplanation },
     getNodeText: (id) => { const d = getData(); if (!d) return null; const n = findNode(d, id); return n ? (n.content || n.text) : null; },
     getMindMapData: getData,
     setMindMapData: setData,

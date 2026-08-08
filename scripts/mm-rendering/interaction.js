@@ -2924,25 +2924,22 @@ function showContextMenu(e) {
                         </div>` : ''}
                         <div class="context-menu-divider" style="margin: 6px 0; height: 1px; background: var(--border-color, #e8ecef);"></div>
 
-                        <div class="context-menu-button ai-menu-item" onclick="window.aiBrainstormNode()">
+                        <!-- 插入子菜单 -->
+                        <div class="context-menu-button ai-menu-item" onmouseenter="window.showInsertSubmenu(this)" onmouseleave="window.hideInsertSubmenuDelayed(this)">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/>
+                                <path d="M5 12h14"/><path d="M12 5v14"/>
                             </svg>
-                            AI 头脑风暴
+                            AI插入
+                            <svg xmlns="http://www.w3.org/2000/svg" width="0.9rem" height="0.9rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;opacity:0.6;">
+                                <path d="m9 18 6-6-6-6"/>
+                            </svg>
                         </div>
 
                         <div class="context-menu-button ai-menu-item" onclick="window.aiResearchNode()">
                             <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.34-4.34"/>
                             </svg>
-                            AI 搜索研究
-                        </div>
-
-                        <div class="context-menu-button ai-menu-item" onclick="window.aiExplainNode()">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="1.2rem" height="1.2rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>
-                            </svg>
-                            AI 概念解释
+                            AI 深度调研
                         </div>
 
                         <div class="context-menu-button ai-menu-item" onclick="window.aiPolishNode()">
@@ -5388,7 +5385,7 @@ window.aiResearchNode = async function() {
         }
     } catch (err) {
         hideLoadingAnimation();
-        alert('AI 搜索研究失败: ' + err.message);
+        alert('AI 深度调研失败: ' + err.message);
     }
 };
 
@@ -5471,6 +5468,171 @@ window.aiRestructureNode = async function() {
     } catch (err) {
         hideLoadingAnimation();
         alert('AI 重构失败: ' + err.message);
+    }
+};
+
+
+// ---- Insert Submenu Functions ----
+window.showInsertSubmenu = function(triggerEl) {
+    if (window._insertSubmenuTimeoutId) {
+        clearTimeout(window._insertSubmenuTimeoutId);
+        window._insertSubmenuTimeoutId = null;
+    }
+    const old = document.getElementById('insert-ai-submenu');
+    if (old) old.remove();
+    const rect = triggerEl.getBoundingClientRect();
+    const submenu = document.createElement('div');
+    submenu.className = 'context-menu context-submenu';
+    submenu.id = 'insert-ai-submenu';
+    submenu.style.position = 'fixed';
+    submenu.style.left = (rect.right + 4) + 'px';
+    submenu.style.top = rect.top + 'px';
+    submenu.style.minWidth = '160px';
+    submenu.style.opacity = '0';
+    submenu.style.transform = 'scale(0.92)';
+    submenu.style.transition = 'transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 120ms ease';
+    submenu.style.zIndex = '10001';
+    submenu.onmouseenter = function() {
+        if (window._insertSubmenuTimeoutId) {
+            clearTimeout(window._insertSubmenuTimeoutId);
+            window._insertSubmenuTimeoutId = null;
+        }
+    };
+    submenu.innerHTML = `
+        <div class="context-menu-button" onclick="window.aiInsertGenerateIdeasAuto()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1.1rem" height="1.1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
+                <path d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z"/><path d="M9 21h6"/>
+            </svg>
+            生成想法 — 自动
+        </div>
+        <div class="context-menu-button" onclick="window.aiInsertGenerateIdeasPrompt()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1.1rem" height="1.1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            生成想法 — 输入提示
+        </div>
+        <div class="context-menu-button" onclick="window.aiInsertWorkBreakdown()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1.1rem" height="1.1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
+                <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+            </svg>
+            工作分解
+        </div>
+        <div class="context-menu-button" onclick="window.aiInsertGenerateExplanation()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="1.1rem" height="1.1rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;">
+                <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>
+            </svg>
+            生成解释
+        </div>
+    `;
+    document.body.appendChild(submenu);
+    requestAnimationFrame(() => {
+        submenu.style.opacity = '1';
+        submenu.style.transform = 'scale(1)';
+    });
+    const sb = submenu.getBoundingClientRect();
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if (sb.right > vw - 10) {
+        submenu.style.left = Math.max(10, rect.left - sb.width - 4) + 'px';
+    }
+    if (sb.bottom > vh - 10) {
+        submenu.style.top = (vh - sb.height - 10) + 'px';
+    }
+};
+
+window._insertSubmenuTimeoutId = null;
+window.hideInsertSubmenuDelayed = function() {
+    if (window._insertSubmenuTimeoutId) {
+        clearTimeout(window._insertSubmenuTimeoutId);
+    }
+    window._insertSubmenuTimeoutId = setTimeout(() => {
+        window._insertSubmenuTimeoutId = null;
+        const sm = document.getElementById('insert-ai-submenu');
+        if (sm && !sm.matches(':hover')) {
+            sm.remove();
+        }
+    }, 200);
+};
+
+// ---- New AI Insert Functions ----
+window.aiInsertGenerateIdeasAuto = async function() {
+    const nodeEl = window.currentNodeElement;
+    if (!nodeEl) return;
+    const nodeId = nodeEl.getAttribute('data-node-id');
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
+    closeContextMenus();
+    showLoadingAnimation();
+    try {
+        const result = await window.XMindAI.actions.generateIdeasAuto(nodeId);
+        if (result && result.success) {
+            showInfoSnackbar('已生成 ' + (result.added || 0) + ' 个想法');
+        }
+    } catch (err) {
+        showInfoSnackbar('生成想法失败: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+        hideLoadingAnimation();
+    }
+};
+
+window.aiInsertGenerateIdeasPrompt = async function() {
+    const nodeEl = window.currentNodeElement;
+    if (!nodeEl) return;
+    const nodeId = nodeEl.getAttribute('data-node-id');
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
+    const userPrompt = window.prompt('请输入提示词，描述你想生成的想法：');
+    if (!userPrompt || !userPrompt.trim()) return;
+    if (userPrompt.trim().length > 500) {
+        alert('提示词过长，请限制在 500 字符以内');
+        return;
+    }
+    closeContextMenus();
+    showLoadingAnimation();
+    try {
+        const result = await window.XMindAI.actions.generateIdeasPrompt(nodeId, userPrompt.trim());
+        if (result && result.success) {
+            showInfoSnackbar('已生成 ' + (result.added || 0) + ' 个想法');
+        }
+    } catch (err) {
+        showInfoSnackbar('生成想法失败: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+        hideLoadingAnimation();
+    }
+};
+
+window.aiInsertWorkBreakdown = async function() {
+    const nodeEl = window.currentNodeElement;
+    if (!nodeEl) return;
+    const nodeId = nodeEl.getAttribute('data-node-id');
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
+    closeContextMenus();
+    showLoadingAnimation();
+    try {
+        const result = await window.XMindAI.actions.workBreakdown(nodeId);
+        if (result && result.success) {
+            showInfoSnackbar('已分解为 ' + (result.added || 0) + ' 个子任务');
+        }
+    } catch (err) {
+        showInfoSnackbar('工作分解失败: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+        hideLoadingAnimation();
+    }
+};
+
+window.aiInsertGenerateExplanation = async function() {
+    const nodeEl = window.currentNodeElement;
+    if (!nodeEl) return;
+    const nodeId = nodeEl.getAttribute('data-node-id');
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
+    closeContextMenus();
+    showLoadingAnimation();
+    try {
+        const result = await window.XMindAI.actions.generateExplanation(nodeId);
+        if (result && result.success) {
+            showInfoSnackbar('已生成 ' + (result.added || 0) + ' 条解释');
+        }
+    } catch (err) {
+        showInfoSnackbar('生成解释失败: ' + (err && err.message ? err.message : String(err)));
+    } finally {
+        hideLoadingAnimation();
     }
 };
 
