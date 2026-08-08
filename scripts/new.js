@@ -3173,7 +3173,7 @@ function loadMindMapById(id) {
 
 	updateUrlWithId(stringId);
 	hideInitialElements();
-	showMindmapElements();
+	showMindMapElements();
 	closeNotesDrawer();
     resetMindMapHistory();
 
@@ -5438,7 +5438,7 @@ window.showLicensePopup = showLicensePopup;
 window.closeLicensePopup = closeLicensePopup;
 
 document.addEventListener('DOMContentLoaded', () => {
-    if (window.ChatManager) {
+    if (window.ChatManager && !window.chatManager) {
         window.chatManager = new window.ChatManager();
     }
 });
