@@ -311,6 +311,10 @@ function showApiKeyManagement() {
 						${currentApiKey ? `<button id="remove-api-key-btn" class="remove-btn" style="flex: 1; margin: 0;">移除 API 密钥</button>` : ''}
 						<button id="update-api-key-btn" class="popup-save-btn" style="flex: 1;">完成</button>
 					</div>
+					<div style="font-size: 0.85em; color: var(--text-color); opacity: 0.6; text-align: center; line-height: 1.7; margin-top: 18px;">
+						您的 API 密钥仅存储在本地设备上（浏览器 localStorage）。<br>
+						存储键名：<code style="background: var(--light-grey); color: var(--text-color); border: 1px solid var(--primary-color); padding: 2px 8px; border-radius: 4px; font-weight: 600; font-size: 0.95em;">openrouter-api-key-encrypted</code>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -1802,8 +1806,8 @@ function updateSignUpButton() {
 		if (__mmwEnginePromise) return __mmwEnginePromise;
 		__mmwEnsureEngineDom();
 
-		__mmwEnginePromise = __mmwLoadScript('/scripts/mm-rendering/renderer.js')
-			.then(() => __mmwLoadScript('/scripts/mm-rendering/interaction.js'))
+		__mmwEnginePromise = __mmwLoadScript('/scripts/mm-rendering/renderer.js?v=20260809')
+			.then(() => __mmwLoadScript('/scripts/mm-rendering/interaction.js?v=20260809'))
 			.then(() => {
 				try {
 				if (!window.__mmwEngineBooted) {
