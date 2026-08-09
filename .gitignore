@@ -27,3 +27,14 @@ build/
 *.zip
 *.rar
 *.7z
+
+# Local tests
+_tests/node_modules/
+_tests/package-lock.json
+_tests/vitest.config.js
+_tests/.npm-cache/
+_tests/e2e/node_modules/
+_tests/e2e/package-lock.json
+_tests/e2e/.npm-cache/
+_tests/e2e/test-results/
+_tests/e2e/playwright-report/

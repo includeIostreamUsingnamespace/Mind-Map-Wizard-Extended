@@ -1257,9 +1257,7 @@ h2 {
   transition: all 0.3s ease;
   overflow: hidden;
 }
-.regenerate-button {
-  display: none !important;
-}
+/* 重新生成按钮的显隐由 JS（updateAiFeaturesUI）控制，此处不应永久隐藏 */
 
 .download-mindmap-btn svg,
 .share-mm-button svg,

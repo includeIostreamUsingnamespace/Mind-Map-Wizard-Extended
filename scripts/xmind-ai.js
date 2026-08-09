@@ -428,5 +428,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     findNode, findParent, genId, countNodes
   };
 
+  window.__mmwTestExports = { parseResponse, escapePrompt, toEditorJson, findNode, genId, countNodes, getData };
+
   console.log('[XMind AI] Loaded. Actions:', Object.keys(window.XMindAI.actions));
 })();

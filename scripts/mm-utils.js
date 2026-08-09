@@ -172,8 +172,8 @@
         if (__mmwEnginePromise) return __mmwEnginePromise;
         window.__mmwEnsureEngineDom();
 
-        __mmwEnginePromise = window.__mmwLoadScript('/scripts/mm-rendering/renderer.js?v=20260809')
-            .then(() => window.__mmwLoadScript('/scripts/mm-rendering/interaction.js?v=20260809'))
+        __mmwEnginePromise = window.__mmwLoadScript('/scripts/mm-rendering/renderer.js?v=20260810')
+            .then(() => window.__mmwLoadScript('/scripts/mm-rendering/interaction.js?v=20260810'))
             .then(() => {
                 try {
                     if (!window.__mmwEngineBooted) {

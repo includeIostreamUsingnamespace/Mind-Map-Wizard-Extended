@@ -1,4 +1,5 @@
 function findNode(root, id) {
+  if (!root) return null;
   if (root.id === id) return root;
   if (root.children) {
     for (const child of root.children) {
@@ -84,7 +85,7 @@ function execAddNode(root, parentId, nodeData) {
     children: []
   };
 
-  if (nodeData.children && Array.isArray(nodeData.children)) {
+  if (nodeData && Array.isArray(nodeData.children)) {
     newNode.children = processChildrenWithIds(nodeData.children);
   }
 
@@ -527,3 +528,9 @@ Original User Request: "${input}"
 }
 
 window.handleChatEdit = handleChatEdit;
+
+// 仅测试用导出：暴露内部树操作函数
+window.__mmwChatEditTestExports = {
+  findNode, findParent, generateId, execDeleteNode, execUpdateNode,
+  processChildrenWithIds, execAddNode, applyCommands
+};

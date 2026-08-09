@@ -94,11 +94,28 @@ document.addEventListener('DOMContentLoaded', function () {
 	const popup = document.querySelector('.keyboard-shortcuts-popup');
 
 	if (hotkeysButton && popup) {
+		// 设置菜单项点击时应能直接打开/关闭快捷键面板（悬停仅作为附加方式）
+		let hotkeysPinned = false;
+		hotkeysButton.addEventListener('click', (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			hotkeysPinned = !hotkeysPinned;
+			popup.style.display = hotkeysPinned ? 'block' : 'none';
+		});
+
+		document.addEventListener('click', (e) => {
+			if (hotkeysPinned && !hotkeysButton.contains(e.target) && !popup.contains(e.target)) {
+				hotkeysPinned = false;
+				popup.style.display = 'none';
+			}
+		});
+
 		hotkeysButton.addEventListener('mouseenter', () => {
 			popup.style.display = 'block';
 		});
 
 		hotkeysButton.addEventListener('mouseleave', () => {
+			if (hotkeysPinned) return;
 			if (!popup.matches(':hover')) {
 				popup.style.display = 'none';
 			}
@@ -109,6 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 
 		popup.addEventListener('mouseleave', () => {
+			if (hotkeysPinned) return;
 			popup.style.display = 'none';
 		});
 	}
