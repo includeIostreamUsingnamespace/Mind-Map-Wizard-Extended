@@ -22,7 +22,7 @@
 ${children.map(c => '- ' + c).join('\n')}
 Provide a concise 2-3 sentence summary. Return ONLY plain text.`,
     explain: (topic) => `Explain the concept "${topic}" in clear, simple terms. Break it down into 2-3 key points. Return ONLY a JSON array of strings.`,
-    polish: (text) => `Improve the following text to be more clear, concise, and professional. Return ONLY the improved text as plain string.
+    polish: (text, direction) => `Improve the following text to be ${direction || 'more clear, concise, and professional'}. Return ONLY the improved text as plain string.
 
 Text: "${text}"`,
     restructure: (topic, children) => `Given the topic "${topic}" with these sub-items:
@@ -75,25 +75,47 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
 这是一个很好的问题。从专业角度来看，${topic} 涉及多个层面的考量。建议您可以进一步细化这个问题，例如从理论角度、实践角度或对比分析的角度来深入探讨。`
   };
 
+  function syncProviderConfig() {
+    if (typeof window.isLocalProvider !== 'function') return;
+    const isLocal = window.isLocalProvider();
+    const base = typeof window.getOllamaBaseUrl === 'function'
+      ? window.getOllamaBaseUrl()
+      : 'http://localhost:11434';
+    window.XMIND_AI_CONFIG.provider = isLocal ? 'ollama' : 'openai';
+    window.XMIND_AI_CONFIG.apiEndpoint = isLocal ? `${base.replace(/\/+$/, '')}/api/chat` : '';
+    window.XMIND_AI_CONFIG.apiKey = typeof window.getStoredApiKey === 'function' ? window.getStoredApiKey() : '';
+    window.XMIND_AI_CONFIG.model = typeof window.getSelectedModel === 'function'
+      ? window.getSelectedModel()
+      : window.XMIND_AI_CONFIG.model;
+  }
+
   async function callAI(prompt) {
+    syncProviderConfig();
     const cfg = window.XMIND_AI_CONFIG;
     if (cfg.provider === 'mock') {
       await new Promise(r => setTimeout(r, 800 + Math.random() * 1000));
       return { content: null };
     }
-    const endpoint = cfg.provider === 'ollama'
+    const isLocal = cfg.provider === 'ollama';
+    const endpoint = isLocal
       ? (cfg.apiEndpoint || 'http://localhost:11434/api/chat')
-      : (cfg.apiEndpoint || 'https://api.openai.com/v1/chat/completions');
-    const headers = { 'Content-Type': 'application/json' };
-    if (cfg.provider !== 'ollama' && cfg.apiKey) headers['Authorization'] = `Bearer ${cfg.apiKey}`;
-    const body = cfg.provider === 'ollama'
+      : (window.getChatCompletionsUrl
+        ? window.getChatCompletionsUrl()
+        : (cfg.apiEndpoint || 'https://api.openai.com/v1/chat/completions'));
+    const headers = typeof window.getAiRequestHeaders === 'function'
+      ? window.getAiRequestHeaders(cfg.apiKey)
+      : { 'Content-Type': 'application/json' };
+    if (!isLocal && cfg.apiKey && typeof window.getAiRequestHeaders !== 'function') {
+      headers['Authorization'] = `Bearer ${cfg.apiKey}`;
+    }
+    const body = isLocal
       ? JSON.stringify({ model: cfg.model || 'llama2', messages: [{role:'user',content:prompt}], stream: false })
       : JSON.stringify({ model: cfg.model, messages: [{role:'user',content:prompt}], temperature: cfg.temperature, max_tokens: cfg.maxTokens });
     try {
       const res = await fetch(endpoint, { method: 'POST', headers, body });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const content = cfg.provider === 'ollama' ? data.message?.content : data.choices?.[0]?.message?.content;
+      const content = isLocal ? data.message?.content : data.choices?.[0]?.message?.content;
       return { content };
     } catch (err) { console.error('AI API Error:', err); throw err; }
   }
@@ -303,7 +325,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     setData(data); return { success: true, added: result.length };
   }
 
-  async function aiPolish(nodeId) {
+  async function aiPolish(nodeId, direction) {
     const data = getData(); if (!data) throw new Error('No data');
     const node = findNode(data, nodeId); if (!node) throw new Error('Node not found');
     const text = node.content || node.text || '';
@@ -312,7 +334,7 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     if (window.XMIND_AI_CONFIG.provider === 'mock') {
       await new Promise(r => setTimeout(r, 600));
       result = MOCK_RESPONSES.polish(text);
-    } else { const res = await callAI(PROMPTS.polish(escapePrompt(text))); result = parseResponse(res.content, 'polish'); }
+    } else { const res = await callAI(PROMPTS.polish(escapePrompt(text), direction)); result = parseResponse(res.content, 'polish'); }
     node.content = String(result); if (node.text !== undefined) node.text = String(result);
     setData(data); return { success: true, original: text, polished: String(result) };
   }
@@ -418,6 +440,8 @@ Provide a helpful, accurate, and concise answer. Return plain text.`
     const prompt = `Explain the concept "${topic}" in clear, simple terms suitable for a beginner. Break it down into 3-5 key points. Return ONLY a JSON array of strings.`;
     return aiInsertCore(nodeId, prompt, parseResponse(MOCK_RESPONSES.explain(topic), 'explain'), 'explain', 900, node);
   }
+
+  syncProviderConfig();
 
   window.XMindAI = {
     config: window.XMIND_AI_CONFIG,

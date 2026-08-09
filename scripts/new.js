@@ -134,10 +134,9 @@ function aiRequiresApiKey() {
 function getAiRequestHeaders(apiKey) {
 	const headers = {
 		'Content-Type': 'application/json',
-		'HTTP-Referer': window.location.origin,
-		// 'X-Title': 'Mind Map Wizard' // Commented out to fix Ollama CORS
 	};
 	if (!isLocalProvider()) {
+		headers['HTTP-Referer'] = window.location.origin;
 		headers['Authorization'] = `Bearer ${apiKey || getStoredApiKey()}`;
 	}
 	return headers;
@@ -3144,7 +3143,8 @@ function loadMindMapById(id) {
 		return;
 	}
 
-	const selectedItem = document.querySelector(`.mindmap-item[data-id="${id}"]`);
+	const selectedItem = Array.from(document.querySelectorAll('.mindmap-item'))
+		.find((el) => el.dataset.id === String(id));
 	if (selectedItem) {
 		selectedItem.classList.add('active');
 	}
@@ -3343,14 +3343,14 @@ function loadMindmapsLeftSidebar() {
 			(item) => {
 				const title = deriveTopic(item);
 				return `
-        <div class="mindmap-item" data-id="${item.id}">
+        <div class="mindmap-item" data-id="${escapeHtmlAttr(item.id)}">
             <div class="mindmap-info">
                 <div class="mindmap-title">${escapeHtmlLeftSidebar(title)}</div>
                 <div class="mindmap-date">${formatDateLeftSidebar(item.timestamp)}</div>
             </div>
             <div class="mindmap-actions">
                 <div class="fade-overlay"></div>
-                <button class="delete-btn" onclick="deleteMindmap('${item.id}')" title="删除">
+                <button class="delete-btn" onclick="deleteMindmap(this.closest('.mindmap-item').dataset.id)" title="删除">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
             </div>
@@ -3808,7 +3808,7 @@ async function shareMindmap() {
 			  <hr style="border: 1px solid; border-color: var(--light-grey); border-radius: 5px; margin: 10px 0 10px 0;" class="qr-code-container-hr">
 			  <h3>分享思维导图</h3>
 			  <p>扫描二维码或复制链接分享您的思维导图。</p>
-			  <input type="text" class="share-link" value="${shareUrl}" readonly>
+			  <input type="text" class="share-link" value="${escapeHtmlAttr(shareUrl)}" readonly>
 			  <div class="dialog-buttons">
 				  <button class="dialog-button cancel" onclick="closeShareDialog()">关闭</button>
 				  <button class="dialog-button confirm" onclick="copyShareLink()">复制链接</button>
@@ -3846,7 +3846,7 @@ async function shareMindmap() {
 		console.error('Error sharing mindmap:', error);
 		dialog.innerHTML = `
 			  <h3>分享思维导图</h3>
-			  <p style="color: red;">${error.message || '分享思维导图失败，请重试。'}</p>
+			  <p style="color: red;">${escapeHtml(error.message || '分享思维导图失败，请重试。')}</p>
 			  <div class="dialog-buttons">
 				  <button class="dialog-button cancel" onclick="closeShareDialog()">关闭</button>
 			  </div>
@@ -4007,7 +4007,7 @@ function renderSearchMindmapResults(mindmapsToDisplay) {
 				const showSnippet = searchTerm && snippet && !title.toLowerCase().includes(searchTerm.toLowerCase());
 
 				return `
-        <div class="mindmap-item" data-id="${item.id}">
+        <div class="mindmap-item" data-id="${escapeHtmlAttr(item.id)}">
             <div class="mindmap-info">
                 <div class="mindmap-title">${highlightedTitle}</div>
                 ${showSnippet ? `<div class="search-content-snippet">${highlightMatch(snippet, searchTerm)}</div>` : ''}
@@ -5461,3 +5461,22 @@ window.hideLoadingAnimation = function() {
     if (el) el.style.display = 'none';
 };
 
+window.hideAiWorking = function() {
+    const el = document.getElementById('ai-working-indicator');
+    if (el) el.classList.remove('active');
+};
+
+window.showAiWorking = function(message) {
+    window.hideAiWorking();
+    let el = document.getElementById('ai-working-indicator');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'ai-working-indicator';
+        el.className = 'ai-working-indicator';
+        el.innerHTML = '<div class="expand-spinner"></div><span></span>';
+        document.body.appendChild(el);
+    }
+    const label = el.querySelector('span');
+    if (label) label.textContent = message || 'AI 正在处理...';
+    el.classList.add('active');
+};

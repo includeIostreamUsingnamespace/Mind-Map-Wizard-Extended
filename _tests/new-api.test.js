@@ -60,6 +60,15 @@ describe('escapeHtmlAttr', () => {
   });
 });
 
+describe('escapeHtml', () => {
+  it('转义 HTML 注入字符', () => {
+    expect(escapeHtml('<img src=x onerror=alert(1)>')).toBe('&lt;img src=x onerror=alert(1)&gt;');
+  });
+  it('转义引号与单引号', () => {
+    expect(escapeHtml("a\"b'c&d")).toBe('a&quot;b&#039;c&amp;d');
+  });
+});
+
 describe('AI provider 配置', () => {
   it('默认 OpenRouter 云端地址', () => {
     localStorage.removeItem('mmw-ai-provider');
@@ -83,12 +92,14 @@ describe('AI provider 配置', () => {
     localStorage.setItem('mmw-ai-provider', 'ollama');
     const headers = getAiRequestHeaders('secret-key');
     expect(headers.Authorization).toBeUndefined();
+    expect(headers['HTTP-Referer']).toBeUndefined();
     expect(headers['Content-Type']).toBe('application/json');
   });
   it('openrouter 模式请求头含 Bearer 密钥', () => {
     localStorage.setItem('mmw-ai-provider', 'openrouter');
     const headers = getAiRequestHeaders('sk-test');
     expect(headers.Authorization).toBe('Bearer sk-test');
+    expect(headers['HTTP-Referer']).toBe(window.location.origin);
   });
   it('finalizeAiPayload 对 ollama 剔除云端专属字段', () => {
     localStorage.setItem('mmw-ai-provider', 'ollama');

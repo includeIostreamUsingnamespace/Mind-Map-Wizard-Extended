@@ -3433,7 +3433,7 @@ window.showImageUploadPopup = async function () {
                 errorMsg.appendChild(messageText);
                 
                 const signUpBtn = document.createElement('a');
-                signUpBtn.href = '/sign-up';
+                signUpBtn.href = '/';
                 signUpBtn.className = 'pill-button';
                 signUpBtn.style.cssText = 'display: inline-block; padding: 10px 24px; background: #4a90d9; color: white; text-decoration: none; border-radius: 25px; font-size: 14px; font-weight: 500; transition: background 0.2s;';
                 signUpBtn.textContent = '注册';
@@ -5537,15 +5537,15 @@ window.aiBrainstormNode = async function() {
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在头脑风暴...');
     try {
         const result = await window.XMindAI.actions.brainstorm(nodeId);
-        hideLoadingAnimation();
+        hideAiWorking();
         if (result.success) {
             alert(`头脑风暴完成！已添加 ${result.added} 个子主题`);
         }
     } catch (err) {
-        hideLoadingAnimation();
+        hideAiWorking();
         alert('AI 头脑风暴失败: ' + err.message);
     }
 };
@@ -5557,15 +5557,15 @@ window.aiResearchNode = async function() {
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在研究...');
     try {
         const result = await window.XMindAI.actions.research(nodeId);
-        hideLoadingAnimation();
+        hideAiWorking();
         if (result.success) {
             alert(`搜索研究完成！已添加 ${result.added} 条信息`);
         }
     } catch (err) {
-        hideLoadingAnimation();
+        hideAiWorking();
         alert('AI 深度调研失败: ' + err.message);
     }
 };
@@ -5577,15 +5577,15 @@ window.aiExplainNode = async function() {
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在解释...');
     try {
         const result = await window.XMindAI.actions.explain(nodeId);
-        hideLoadingAnimation();
+        hideAiWorking();
         if (result.success) {
             alert(`概念解释完成！已添加 ${result.added} 个要点`);
         }
     } catch (err) {
-        hideLoadingAnimation();
+        hideAiWorking();
         alert('AI 概念解释失败: ' + err.message);
     }
 };
@@ -5594,21 +5594,64 @@ window.aiPolishNode = async function() {
     const nodeEl = window.currentNodeElement;
     if (!nodeEl) return;
     const nodeId = nodeEl.getAttribute('data-node-id');
-    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
+    if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
 
     closeContextMenus();
-    showLoadingAnimation();
+    showPolishDirectionPopup(nodeId);
+};
+
+function showPolishDirectionPopup(nodeId) {
+    const existing = document.querySelector('.polish-direction-popup');
+    if (existing) existing.remove();
+    const overlay = document.createElement('div');
+    overlay.className = 'polish-direction-overlay';
+    const popup = document.createElement('div');
+    popup.className = 'polish-direction-popup';
+    popup.innerHTML = `
+        <div class="polish-direction-header">
+            <h3>选择润色方向</h3>
+            <p>AI 会根据所选方向改写节点文字。</p>
+        </div>
+        <div class="polish-direction-options">
+            <button type="button" data-direction="更精简">更精简</button>
+            <button type="button" data-direction="更丰富">更丰富</button>
+            <button type="button" data-direction="更专业">更专业</button>
+            <button type="button" data-direction="更口语化">更口语化</button>
+        </div>
+        <div class="polish-direction-actions">
+            <button type="button" class="polish-direction-cancel">取消</button>
+        </div>
+    `;
+    const close = () => {
+        overlay.remove();
+        popup.remove();
+    };
+    overlay.addEventListener('click', close);
+    popup.querySelector('.polish-direction-cancel').addEventListener('click', close);
+    popup.querySelectorAll('[data-direction]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const direction = btn.getAttribute('data-direction');
+            close();
+            runAiPolish(nodeId, direction);
+        });
+    });
+    document.body.appendChild(overlay);
+    document.body.appendChild(popup);
+}
+
+async function runAiPolish(nodeId, direction) {
+    showAiWorking('AI 正在润色...');
     try {
-        const result = await window.XMindAI.actions.polish(nodeId);
-        hideLoadingAnimation();
+        const result = await window.XMindAI.actions.polish(nodeId, direction);
+        hideAiWorking();
         if (result.success) {
             alert(`润色完成！\n原文: ${result.original}\n润色后: ${result.polished}`);
         }
     } catch (err) {
-        hideLoadingAnimation();
+        hideAiWorking();
         alert('AI 润色失败: ' + err.message);
     }
-};
+}
 
 window.aiSummarizeNode = async function() {
     const nodeEl = window.currentNodeElement;
@@ -5617,15 +5660,15 @@ window.aiSummarizeNode = async function() {
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在总结...');
     try {
         const result = await window.XMindAI.actions.summarize(nodeId);
-        hideLoadingAnimation();
+        hideAiWorking();
         if (result.success) {
             alert(`总结: ${result.summary}`);
         }
     } catch (err) {
-        hideLoadingAnimation();
+        hideAiWorking();
         alert('AI 总结失败: ' + err.message);
     }
 };
@@ -5637,17 +5680,17 @@ window.aiRestructureNode = async function() {
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载');; return; }
 
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在重构...');
     try {
         const result = await window.XMindAI.actions.restructure(nodeId);
-        hideLoadingAnimation();
+        hideAiWorking();
         if (result.success) {
             alert(`重构完成！已按 ${result.groups?.length || 0} 个逻辑组重新组织`);
         } else {
             alert('重构失败: ' + (result.error || '未知错误'));
         }
     } catch (err) {
-        hideLoadingAnimation();
+        hideAiWorking();
         alert('AI 重构失败: ' + err.message);
     }
 };
@@ -5741,7 +5784,7 @@ window.aiInsertGenerateIdeasAuto = async function() {
     const nodeId = nodeEl.getAttribute('data-node-id');
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在生成想法...');
     try {
         const result = await window.XMindAI.actions.generateIdeasAuto(nodeId);
         if (result && result.success) {
@@ -5750,7 +5793,7 @@ window.aiInsertGenerateIdeasAuto = async function() {
     } catch (err) {
         showInfoSnackbar('生成想法失败: ' + (err && err.message ? err.message : String(err)));
     } finally {
-        hideLoadingAnimation();
+        hideAiWorking();
     }
 };
 
@@ -5766,7 +5809,7 @@ window.aiInsertGenerateIdeasPrompt = async function() {
         return;
     }
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在生成想法...');
     try {
         const result = await window.XMindAI.actions.generateIdeasPrompt(nodeId, userPrompt.trim());
         if (result && result.success) {
@@ -5775,7 +5818,7 @@ window.aiInsertGenerateIdeasPrompt = async function() {
     } catch (err) {
         showInfoSnackbar('生成想法失败: ' + (err && err.message ? err.message : String(err)));
     } finally {
-        hideLoadingAnimation();
+        hideAiWorking();
     }
 };
 
@@ -5785,7 +5828,7 @@ window.aiInsertWorkBreakdown = async function() {
     const nodeId = nodeEl.getAttribute('data-node-id');
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在分解任务...');
     try {
         const result = await window.XMindAI.actions.workBreakdown(nodeId);
         if (result && result.success) {
@@ -5794,7 +5837,7 @@ window.aiInsertWorkBreakdown = async function() {
     } catch (err) {
         showInfoSnackbar('工作分解失败: ' + (err && err.message ? err.message : String(err)));
     } finally {
-        hideLoadingAnimation();
+        hideAiWorking();
     }
 };
 
@@ -5804,7 +5847,7 @@ window.aiInsertGenerateExplanation = async function() {
     const nodeId = nodeEl.getAttribute('data-node-id');
     if (!nodeId || !window.XMindAI) { alert('AI 模块未加载'); return; }
     closeContextMenus();
-    showLoadingAnimation();
+    showAiWorking('AI 正在生成解释...');
     try {
         const result = await window.XMindAI.actions.generateExplanation(nodeId);
         if (result && result.success) {
@@ -5813,7 +5856,6 @@ window.aiInsertGenerateExplanation = async function() {
     } catch (err) {
         showInfoSnackbar('生成解释失败: ' + (err && err.message ? err.message : String(err)));
     } finally {
-        hideLoadingAnimation();
+        hideAiWorking();
     }
 };
-

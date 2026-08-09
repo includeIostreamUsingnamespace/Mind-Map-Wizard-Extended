@@ -309,7 +309,8 @@ async function generateNotesWithAI(nodeId, editorDiv) {
         const context = branchContext || node.text;
 
         const apiKey = typeof getStoredApiKey === 'function' ? getStoredApiKey() : '';
-        if (!apiKey) {
+        const needsApiKey = typeof window.aiRequiresApiKey === 'function' ? window.aiRequiresApiKey() : true;
+        if (needsApiKey && !apiKey) {
             if (typeof showApiKeyPopup === 'function') {
                 showApiKeyPopup(() => generateNotesWithAI(nodeId, editorDiv));
             }
@@ -348,15 +349,25 @@ async function generateNotesWithAI(nodeId, editorDiv) {
             reasoning: { exclude: true }
         };
 
-        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
+        const chatUrl = typeof window.getChatCompletionsUrl === 'function'
+            ? window.getChatCompletionsUrl()
+            : 'https://openrouter.ai/api/v1/chat/completions';
+        const chatHeaders = typeof window.getAiRequestHeaders === 'function'
+            ? window.getAiRequestHeaders(apiKey)
+            : {
                 'Authorization': `Bearer ${apiKey}`,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': window.location.origin,
                 'X-Title': 'Mind Map Wizard'
-            },
-            body: JSON.stringify(requestPayload)
+            };
+        const chatBody = typeof window.finalizeAiPayload === 'function'
+            ? JSON.stringify(window.finalizeAiPayload(requestPayload))
+            : JSON.stringify(requestPayload);
+
+        const response = await fetch(chatUrl, {
+            method: 'POST',
+            headers: chatHeaders,
+            body: chatBody
         });
 
         if (!response.ok) {
